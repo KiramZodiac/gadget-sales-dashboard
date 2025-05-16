@@ -3,11 +3,11 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ChartBar, User, Package, Home, Settings, FileText, Users } from 'lucide-react';
 
 const Sidebar = () => {
-  const { isMobile } = useMobile();
+  const isMobile = useIsMobile();
   const location = useLocation();
   const pathname = location.pathname;
 
