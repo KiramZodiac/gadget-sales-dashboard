@@ -25,6 +25,8 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+    --success: 142.1 76.2% 36.3%;
+    --success-foreground: 355.7 100% 97.3%;
   }
 
   .dark {
@@ -47,6 +49,8 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.5% 48%;
+    --success: 142.1 70.6% 45.3%;
+    --success-foreground: 144.9 80.4% 10%;
   }
 }
 
@@ -70,3 +74,29 @@
   }
 }
 
+.stat-title {
+  @apply text-sm font-medium text-muted-foreground;
+}
+
+.stat-value {
+  @apply text-2xl font-bold mt-1;
+}
+
+.stat-description {
+  @apply text-xs text-muted-foreground mt-1;
+}
+
+.stat-change-positive {
+  @apply flex items-center text-xs text-green-600 font-medium mt-1;
+}
+
+.stat-change-negative {
+  @apply flex items-center text-xs text-red-600 font-medium mt-1;
+}
+
+/* Add bottom padding for mobile screens to account for bottom nav */
+@media (max-width: 768px) {
+  main {
+    padding-bottom: 5rem !important;
+  }
+}

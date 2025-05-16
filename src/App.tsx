@@ -10,6 +10,8 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Branches from "./pages/Branches";
+import Customers from "./pages/Customers";
+import Sales from "./pages/Sales";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +55,16 @@ const AppRoutes = () => {
         <Route path="/branches" element={
           <ProtectedRoute>
             <Branches />
+          </ProtectedRoute>
+        } />
+        <Route path="/customers" element={
+          <ProtectedRoute>
+            <Customers />
+          </ProtectedRoute>
+        } />
+        <Route path="/sales" element={
+          <ProtectedRoute>
+            <Sales />
           </ProtectedRoute>
         } />
         <Route path="/settings" element={

@@ -30,8 +30,8 @@ const Sidebar = () => {
   if (isMobile) {
     return (
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background z-10">
-        <div className="grid grid-cols-5 gap-0">
-          {navItems.slice(0, 5).map((item) => (
+        <div className="grid grid-cols-6 gap-0">
+          {navItems.map((item) => (
             <Link to={item.path} key={item.path}>
               <Button
                 variant="ghost"
@@ -55,11 +55,11 @@ const Sidebar = () => {
       <div className="p-6 border-b">
         <h2 className="font-bold text-lg tracking-tight">GadgetSell</h2>
       </div>
-      <div className="flex flex-col gap-1 p-2 flex-1">
+      <div className="flex flex-col gap-1 p-2 flex-1 overflow-y-auto">
         {navItems.map((item) => (
           <Link to={item.path} key={item.path}>
             <Button
-              variant="ghost"
+              variant={isActive(item.path) ? "secondary" : "ghost"}
               className={cn(
                 "w-full justify-start",
                 isActive(item.path) && "bg-accent"
@@ -71,7 +71,7 @@ const Sidebar = () => {
           </Link>
         ))}
       </div>
-      <div className="p-4 border-t">
+      <div className="p-4 border-t mt-auto">
         <Link to="/settings" className="flex items-center gap-2 hover:text-primary">
           <User className="h-5 w-5" />
           <span>Account</span>

@@ -8,7 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Bell, Settings, LogOut } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Bell, Settings, LogOut, User, ChevronDown } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { useBusiness } from "@/context/BusinessContext";
 import { useAuth } from "@/context/AuthContext";
@@ -16,16 +24,18 @@ import { useNavigate } from "react-router-dom";
 
 interface DashboardHeaderProps {
   businessName: string;
-  userBusinesses: { id: string; name: string }[];
-  onBusinessChange: (businessId: string) => void;
+  userBusinesses?: { id: string; name: string }[];
+  onBusinessChange?: (businessId: string) => void;
 }
 
 const DashboardHeader = ({ 
-  businessName
+  businessName,
+  userBusinesses = [],
+  onBusinessChange
 }: DashboardHeaderProps) => {
   const { toast } = useToast();
   const { businesses, currentBusiness, setCurrentBusiness } = useBusiness();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   
   const handleNotificationClick = () => {
@@ -36,9 +46,13 @@ const DashboardHeader = ({
   };
 
   const handleBusinessChange = (businessId: string) => {
-    const business = businesses.find(b => b.id === businessId);
-    if (business) {
-      setCurrentBusiness(business);
+    if (onBusinessChange) {
+      onBusinessChange(businessId);
+    } else {
+      const business = businesses.find(b => b.id === businessId);
+      if (business) {
+        setCurrentBusiness(business);
+      }
     }
   };
 
@@ -80,20 +94,30 @@ const DashboardHeader = ({
           >
             <Bell className="h-5 w-5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/settings')}
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSignOut}
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-1">
+                <User className="h-5 w-5" />
+                <span className="hidden md:inline-block">
+                  {user?.email && user.email.split('@')[0]}
+                </span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
