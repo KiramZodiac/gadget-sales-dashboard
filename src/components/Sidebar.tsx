@@ -1,121 +1,81 @@
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { 
-  ChartBar, 
-  Home, 
-  ArrowLeft, 
-  ArrowRight,
-  Calendar, 
-  Square, 
-  CircleCheck
-} from "lucide-react";
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useMobile } from '@/hooks/use-mobile';
+import { ChartBar, User, Package, Home, Settings, FileText, Users } from 'lucide-react';
 
-interface SidebarProps {
-  className?: string;
-}
+const Sidebar = () => {
+  const { isMobile } = useMobile();
+  const location = useLocation();
+  const pathname = location.pathname;
 
-interface NavItem {
-  icon: React.ElementType;
-  label: string;
-  href: string;
-  active?: boolean;
-}
+  const isActive = (path: string) => {
+    if (path === '/dashboard' && pathname === '/dashboard') {
+      return true;
+    }
+    return pathname.startsWith(path) && path !== '/dashboard';
+  };
 
-const mainNav: NavItem[] = [
-  { 
-    icon: Home, 
-    label: "Dashboard", 
-    href: "/dashboard", 
-    active: true 
-  },
-  { 
-    icon: Square, 
-    label: "Products", 
-    href: "/products" 
-  },
-  { 
-    icon: CircleCheck, 
-    label: "Inventory", 
-    href: "/inventory" 
-  },
-  { 
-    icon: Calendar, 
-    label: "Sales", 
-    href: "/sales" 
-  },
-  { 
-    icon: ChartBar, 
-    label: "Reports", 
-    href: "/reports" 
-  },
-];
+  const navItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: <Home className="w-5 h-5" /> },
+    { name: 'Products', path: '/products', icon: <Package className="w-5 h-5" /> },
+    { name: 'Branches', path: '/branches', icon: <FileText className="w-5 h-5" /> },
+    { name: 'Customers', path: '/customers', icon: <Users className="w-5 h-5" /> },
+    { name: 'Sales', path: '/sales', icon: <ChartBar className="w-5 h-5" /> },
+    { name: 'Settings', path: '/settings', icon: <Settings className="w-5 h-5" /> },
+  ];
 
-const Sidebar = ({ className }: SidebarProps) => {
-  const [collapsed, setCollapsed] = useState(false);
+  if (isMobile) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background z-10">
+        <div className="grid grid-cols-5 gap-0">
+          {navItems.slice(0, 5).map((item) => (
+            <Link to={item.path} key={item.path}>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full rounded-none flex flex-col items-center py-2 px-0 h-auto gap-0 border-r last:border-r-0",
+                  isActive(item.path) && "bg-accent"
+                )}
+              >
+                {item.icon}
+                <span className="text-xs mt-1">{item.name}</span>
+              </Button>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={cn(
-      "flex flex-col border-r bg-card transition-all duration-300",
-      collapsed ? "w-16" : "w-60",
-      className
-    )}>
-      <div className="flex h-14 items-center px-3 justify-between">
-        {!collapsed && (
-          <span className="font-semibold text-lg">GadgetSell</span>
-        )}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn("ml-auto", collapsed && "mx-auto")}
-        >
-          {collapsed ? 
-            <ArrowRight className="h-4 w-4" /> : 
-            <ArrowLeft className="h-4 w-4" />
-          }
-        </Button>
+    <div className="border-r bg-card h-screen w-64 flex flex-col">
+      <div className="p-6 border-b">
+        <h2 className="font-bold text-lg tracking-tight">GadgetSell</h2>
       </div>
-      
-      <Separator />
-      
-      <ScrollArea className="flex-1 px-2 py-4">
-        <nav className="flex flex-col gap-1">
-          {mainNav.map((item, index) => (
+      <div className="flex flex-col gap-1 p-2 flex-1">
+        {navItems.map((item) => (
+          <Link to={item.path} key={item.path}>
             <Button
-              key={index}
-              variant={item.active ? "secondary" : "ghost"}
+              variant="ghost"
               className={cn(
-                "justify-start gap-2",
-                collapsed && "justify-center px-2"
+                "w-full justify-start",
+                isActive(item.path) && "bg-accent"
               )}
-              asChild
             >
-              <a href={item.href}>
-                <item.icon className="h-4 w-4" />
-                {!collapsed && <span>{item.label}</span>}
-              </a>
+              {item.icon}
+              <span className="ml-2">{item.name}</span>
             </Button>
-          ))}
-        </nav>
-      </ScrollArea>
-      
-      <div className="p-4">
-        <Button 
-          variant="default" 
-          className={cn(
-            "w-full", 
-            collapsed && "px-2"
-          )}
-        >
-          {collapsed ? 
-            <ChartBar className="h-4 w-4" /> : 
-            "Create Sale"
-          }
-        </Button>
+          </Link>
+        ))}
+      </div>
+      <div className="p-4 border-t">
+        <Link to="/settings" className="flex items-center gap-2 hover:text-primary">
+          <User className="h-5 w-5" />
+          <span>Account</span>
+        </Link>
       </div>
     </div>
   );

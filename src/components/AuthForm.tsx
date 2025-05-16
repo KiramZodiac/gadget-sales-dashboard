@@ -6,27 +6,46 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate } from 'react-router-dom';
+import { supabase } from "@/integrations/supabase/client";
 
 const AuthForm = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleAuth = async (action: 'login' | 'signup') => {
+    if (!email || !password) {
+      setError("Email and password are required");
+      return;
+    }
+
     setIsLoading(true);
+    setError(null);
     
     try {
-      // This will be replaced with Supabase auth once integrated
       if (action === 'signup') {
-        console.log('Signup with:', { email, password });
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        
+        if (error) throw error;
         
         toast({
           title: "Account created!",
           description: "Please check your email to verify your account.",
         });
       } else {
-        console.log('Login with:', { email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) throw error;
         
         toast({
           title: "Welcome back!",
@@ -34,14 +53,15 @@ const AuthForm = () => {
         });
 
         // Redirect to dashboard after login
-        window.location.href = '/dashboard';
+        navigate('/dashboard');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Authentication error:', error);
+      setError(error.message || "Authentication failed");
       toast({
         variant: "destructive",
         title: "Authentication failed",
-        description: "Please check your credentials and try again.",
+        description: error.message || "Please check your credentials and try again.",
       });
     } finally {
       setIsLoading(false);
@@ -62,6 +82,7 @@ const AuthForm = () => {
             <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {error && <div className="text-sm font-medium text-destructive">{error}</div>}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -75,7 +96,14 @@ const AuthForm = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Button variant="link" className="px-0 font-normal h-auto" size="sm">
+                <Button 
+                  variant="link" 
+                  className="px-0 font-normal h-auto" 
+                  size="sm"
+                  onClick={() => toast({
+                    description: "Password reset functionality will be added soon."
+                  })}
+                >
                   Forgot password?
                 </Button>
               </div>
@@ -104,6 +132,7 @@ const AuthForm = () => {
             <CardDescription>Enter your information to get started.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {error && <div className="text-sm font-medium text-destructive">{error}</div>}
             <div className="space-y-2">
               <Label htmlFor="signup-email">Email</Label>
               <Input

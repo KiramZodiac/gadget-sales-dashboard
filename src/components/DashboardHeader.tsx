@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Select,
@@ -8,8 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Bell, Settings } from "lucide-react";
+import { Bell, Settings, LogOut } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
+import { useBusiness } from "@/context/BusinessContext";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardHeaderProps {
   businessName: string;
@@ -18,12 +21,12 @@ interface DashboardHeaderProps {
 }
 
 const DashboardHeader = ({ 
-  businessName, 
-  userBusinesses, 
-  onBusinessChange 
+  businessName
 }: DashboardHeaderProps) => {
   const { toast } = useToast();
-  const [newBusiness, setNewBusiness] = useState("");
+  const { businesses, currentBusiness, setCurrentBusiness } = useBusiness();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   
   const handleNotificationClick = () => {
     toast({
@@ -32,19 +35,34 @@ const DashboardHeader = ({
     });
   };
 
+  const handleBusinessChange = (businessId: string) => {
+    const business = businesses.find(b => b.id === businessId);
+    if (business) {
+      setCurrentBusiness(business);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   return (
     <header className="border-b bg-card">
       <div className="container flex items-center justify-between py-4">
         <div className="flex items-center gap-4">
           <h1 className="font-semibold text-lg">{businessName}</h1>
           
-          {userBusinesses.length > 0 && (
-            <Select onValueChange={onBusinessChange}>
+          {businesses.length > 0 && (
+            <Select
+              value={currentBusiness?.id}
+              onValueChange={handleBusinessChange}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Switch business" />
               </SelectTrigger>
               <SelectContent>
-                {userBusinesses.map((business) => (
+                {businesses.map((business) => (
                   <SelectItem key={business.id} value={business.id}>
                     {business.name}
                   </SelectItem>
@@ -62,8 +80,19 @@ const DashboardHeader = ({
           >
             <Bell className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/settings')}
+          >
             <Settings className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-5 w-5" />
           </Button>
         </div>
       </div>

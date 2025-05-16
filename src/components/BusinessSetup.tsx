@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BusinessSetupProps {
   onBusinessCreated: (businessId: string, businessName: string) => void;
@@ -28,26 +29,36 @@ const BusinessSetup = ({ onBusinessCreated }: BusinessSetupProps) => {
     setIsLoading(true);
     
     try {
-      // This will be replaced with Supabase integration
-      console.log('Creating business:', businessName);
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
       
-      // Mock business creation
-      setTimeout(() => {
-        const businessId = `business-${Date.now()}`;
-        
-        toast({
-          title: "Business created!",
-          description: "You can now start setting up your dashboard.",
-        });
-        
-        onBusinessCreated(businessId, businessName);
-      }, 1000);
-    } catch (error) {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Insert the business into the database
+      const { data, error } = await supabase
+        .from('businesses')
+        .insert([
+          { name: businessName, owner_id: user.id }
+        ])
+        .select('id, name')
+        .single();
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Business created!",
+        description: "You can now start setting up your dashboard.",
+      });
+      
+      onBusinessCreated(data.id, data.name);
+    } catch (error: any) {
       console.error('Business creation error:', error);
       toast({
         variant: "destructive",
         title: "Failed to create business",
-        description: "An error occurred while creating your business. Please try again.",
+        description: error.message || "An error occurred while creating your business. Please try again.",
       });
     } finally {
       setIsLoading(false);
