@@ -25,6 +25,9 @@ export interface Product {
   cost_price: number;
   business_id: string;
   image_url?: string;
+  quantity: number;
+  sold?: boolean;
+  sale_date?: string;
 }
 
 export interface BranchProduct {

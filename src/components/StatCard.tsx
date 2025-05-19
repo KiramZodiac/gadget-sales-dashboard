@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface StatCardProps {
   title: string;
@@ -11,6 +12,7 @@ interface StatCardProps {
   icon?: React.ReactNode;
   change?: number;
   className?: string;
+  currency?: boolean;
 }
 
 const StatCard = ({ 
@@ -19,15 +21,23 @@ const StatCard = ({
   description, 
   icon,
   change,
-  className 
+  className,
+  currency = false
 }: StatCardProps) => {
+  const isMobile = useIsMobile();
+  
+  // Format currency in Ugandan shillings
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-UG', {
+      style: 'currency',
+      currency: 'UGX',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+  
   const formattedValue = typeof value === 'number' 
-    ? new Intl.NumberFormat('en-US', {
-        style: value.toString().includes('$') ? 'currency' : 'decimal',
-        currency: 'USD',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(value)
+    ? (currency ? formatCurrency(value) : value.toLocaleString())
     : value;
 
   const showChange = change !== undefined;
@@ -35,11 +45,11 @@ const StatCard = ({
 
   return (
     <Card className={cn("dashboard-card", className)}>
-      <CardContent className="p-4 pt-4">
+      <CardContent className={cn("p-4 pt-4", isMobile && "p-3 pt-3")}>
         <div className="flex items-start justify-between">
           <div>
             <p className="stat-title">{title}</p>
-            <p className="stat-value">{formattedValue}</p>
+            <p className={cn("stat-value", isMobile && "text-xl")}>{formattedValue}</p>
             
             {showChange && (
               <div className={isPositive ? "stat-change-positive" : "stat-change-negative"}>

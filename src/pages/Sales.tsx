@@ -29,6 +29,7 @@ import { useBusiness } from '@/context/BusinessContext';
 import { Sale } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SaleFormData {
   product_id: string;
@@ -42,6 +43,7 @@ interface SaleFormData {
 const Sales = () => {
   const { currentBusiness } = useBusiness();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -113,12 +115,13 @@ const Sales = () => {
     if (!currentBusiness) return;
     
     try {
-      // Fetch products
+      // Fetch products with quantity > 0 and not sold
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
         .eq('business_id', currentBusiness.id)
-        .eq('sold', false);
+        .eq('sold', false)
+        .gt('quantity', 0);
       
       if (productsError) throw productsError;
       setProducts(productsData || []);
@@ -159,12 +162,23 @@ const Sales = () => {
       const product = products.find(p => p.id === formData.product_id);
       if (!product) throw new Error("Product not found");
       
+      const saleQuantity = Number(formData.quantity);
+      
+      if (saleQuantity > product.quantity) {
+        toast({
+          variant: "destructive",
+          title: "Insufficient quantity",
+          description: `Only ${product.quantity} available in stock.`,
+        });
+        return;
+      }
+      
       // Convert form data
       const newSale = {
         product_id: formData.product_id,
         branch_id: formData.branch_id,
         customer_id: formData.customer_id || null,
-        quantity: Number(formData.quantity),
+        quantity: saleQuantity,
         total: Number(formData.total),
         date: new Date(formData.date).toISOString(),
         business_id: currentBusiness.id
@@ -177,20 +191,34 @@ const Sales = () => {
       
       if (saleError) throw saleError;
       
-      // Mark the product as sold
-      const { error: productError } = await supabase
-        .from('products')
-        .update({
-          sold: true,
-          sale_date: new Date().toISOString()
-        })
-        .eq('id', formData.product_id);
+      // Update product quantity
+      const newQuantity = product.quantity - saleQuantity;
       
-      if (productError) throw productError;
+      if (newQuantity > 0) {
+        // If there are products left, update quantity
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ quantity: newQuantity })
+          .eq('id', formData.product_id);
+        
+        if (updateError) throw updateError;
+      } else {
+        // Mark the product as sold if no quantity left
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({
+            quantity: 0,
+            sold: true,
+            sale_date: new Date().toISOString()
+          })
+          .eq('id', formData.product_id);
+        
+        if (updateError) throw updateError;
+      }
       
       toast({
         title: "Sale added successfully",
-        description: "The sale has been recorded and the product marked as sold.",
+        description: "The sale has been recorded and the product inventory updated.",
       });
       
       setIsDialogOpen(false);
@@ -230,8 +258,18 @@ const Sales = () => {
     sale.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
+  // Format currency in Ugandan shillings
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-UG', {
+      style: 'currency',
+      currency: 'UGX',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+  
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col md:flex-row">
       <Sidebar />
       
       <div className="flex-1 flex flex-col">
@@ -241,16 +279,16 @@ const Sales = () => {
           onBusinessChange={() => {}}
         />
         
-        <main className="flex-1 p-6 bg-muted/20">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">Sales</h1>
+        <main className="flex-1 p-4 md:p-6 bg-muted/20 pb-20 md:pb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h1 className="text-2xl md:text-3xl font-bold">Sales</h1>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="mr-2 h-4 w-4" /> Add New Sale
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-[475px]">
                 <DialogHeader>
                   <DialogTitle>Add New Sale</DialogTitle>
                   <DialogDescription>
@@ -270,11 +308,17 @@ const Sales = () => {
                           <SelectValue placeholder="Select a product" />
                         </SelectTrigger>
                         <SelectContent>
-                          {products.map(product => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name} - ${product.price}
+                          {products.length === 0 ? (
+                            <SelectItem value="no-products" disabled>
+                              No available products
                             </SelectItem>
-                          ))}
+                          ) : (
+                            products.map(product => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name} - {formatCurrency(product.price)} (Qty: {product.quantity})
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -315,7 +359,7 @@ const Sales = () => {
                       </Select>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="quantity">Quantity</Label>
                         <Input 
@@ -329,11 +373,11 @@ const Sales = () => {
                       </div>
                       
                       <div className="grid gap-2">
-                        <Label htmlFor="total">Total Price</Label>
+                        <Label htmlFor="total">Total Price (UGX)</Label>
                         <Input 
                           id="total" 
                           type="number" 
-                          step="0.01"
+                          step="100"
                           value={formData.total}
                           onChange={(e) => setFormData({ ...formData, total: e.target.value })}
                           required
@@ -375,7 +419,7 @@ const Sales = () => {
             <CardHeader className="pb-2">
               <CardTitle>All Sales</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 overflow-x-auto">
               {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                   Loading sales data...
@@ -386,9 +430,9 @@ const Sales = () => {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Product</TableHead>
-                      <TableHead>Branch</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Quantity</TableHead>
+                      {!isMobile && <TableHead>Branch</TableHead>}
+                      {!isMobile && <TableHead>Customer</TableHead>}
+                      <TableHead className="text-center">Qty</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead className="text-right">Profit/Loss</TableHead>
                     </TableRow>
@@ -396,7 +440,7 @@ const Sales = () => {
                   <TableBody>
                     {filteredSales.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-10">
+                        <TableCell colSpan={isMobile ? 5 : 7} className="text-center py-10">
                           No sales found
                         </TableCell>
                       </TableRow>
@@ -408,15 +452,20 @@ const Sales = () => {
                         return (
                           <TableRow key={sale.id}>
                             <TableCell>
-                              {new Date(sale.date).toLocaleDateString()}
+                              <div>{new Date(sale.date).toLocaleDateString()}</div>
+                              {isMobile && (
+                                <div className="text-xs text-muted-foreground">
+                                  {sale.branch?.name || 'Unknown'} • {sale.customer?.name || 'Walk-in'}
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell className="font-medium">{sale.product?.name || 'Unknown'}</TableCell>
-                            <TableCell>{sale.branch?.name || 'Unknown'}</TableCell>
-                            <TableCell>{sale.customer?.name || 'Walk-in'}</TableCell>
-                            <TableCell>{sale.quantity}</TableCell>
-                            <TableCell>${sale.total.toFixed(2)}</TableCell>
+                            {!isMobile && <TableCell>{sale.branch?.name || 'Unknown'}</TableCell>}
+                            {!isMobile && <TableCell>{sale.customer?.name || 'Walk-in'}</TableCell>}
+                            <TableCell className="text-center">{sale.quantity}</TableCell>
+                            <TableCell>{formatCurrency(sale.total)}</TableCell>
                             <TableCell className={`text-right font-medium ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
-                              {isProfitable ? '+' : ''}{profit.toFixed(2)}
+                              {isProfitable ? '+' : ''}{formatCurrency(profit)}
                             </TableCell>
                           </TableRow>
                         );

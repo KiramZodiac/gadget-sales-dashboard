@@ -17,6 +17,14 @@ const badgeVariants = cva(
         outline: "text-foreground",
         success:
           "border-transparent bg-success text-success-foreground hover:bg-success/80",
+        profit: 
+          "border-transparent bg-green-100 text-green-800 border-green-300",
+        loss:
+          "border-transparent bg-red-100 text-red-800 border-red-300",
+        stock:
+          "border-transparent bg-blue-100 text-blue-800 border-blue-300",
+        sold:
+          "border-transparent bg-green-100 text-green-800 border-green-300",
       },
     },
     defaultVariants: {

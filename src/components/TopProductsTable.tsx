@@ -16,12 +16,22 @@ interface TopProductsTableProps {
 }
 
 const TopProductsTable = ({ products }: TopProductsTableProps) => {
+  // Format currency in Ugandan shillings
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-UG', {
+      style: 'currency',
+      currency: 'UGX',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
   return (
     <Card className="dashboard-card">
       <CardHeader className="pb-2">
         <CardTitle>Top Selling Products</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -45,7 +55,7 @@ const TopProductsTable = ({ products }: TopProductsTableProps) => {
                   <TableCell>{product.brand}</TableCell>
                   <TableCell className="text-right">{product.totalSold}</TableCell>
                   <TableCell className="text-right font-medium">
-                    ${product.totalRevenue.toFixed(2)}
+                    {formatCurrency(product.totalRevenue)}
                   </TableCell>
                 </TableRow>
               ))
