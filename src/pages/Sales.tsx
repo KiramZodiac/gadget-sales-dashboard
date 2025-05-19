@@ -57,7 +57,7 @@ const Sales = () => {
   const [formData, setFormData] = useState<SaleFormData>({
     product_id: '',
     branch_id: '',
-    customer_id: '',
+    customer_id: 'no-customer', // Changed default value
     quantity: '1',
     total: '',
     date: new Date().toISOString().split('T')[0]
@@ -177,7 +177,7 @@ const Sales = () => {
       const newSale = {
         product_id: formData.product_id,
         branch_id: formData.branch_id,
-        customer_id: formData.customer_id || null,
+        customer_id: formData.customer_id === 'no-customer' ? null : formData.customer_id, // Handle null customer
         quantity: saleQuantity,
         total: Number(formData.total),
         date: new Date(formData.date).toISOString(),
@@ -229,7 +229,7 @@ const Sales = () => {
       setFormData({
         product_id: '',
         branch_id: '',
-        customer_id: '',
+        customer_id: 'no-customer',
         quantity: '1',
         total: '',
         date: new Date().toISOString().split('T')[0]
@@ -351,7 +351,7 @@ const Sales = () => {
                           <SelectValue placeholder="Select a customer" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Walk-in Customer</SelectItem>
+                          <SelectItem value="no-customer">Walk-in Customer</SelectItem>
                           {customers.map(customer => (
                             <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
                           ))}
@@ -425,54 +425,56 @@ const Sales = () => {
                   Loading sales data...
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Product</TableHead>
-                      {!isMobile && <TableHead>Branch</TableHead>}
-                      {!isMobile && <TableHead>Customer</TableHead>}
-                      <TableHead className="text-center">Qty</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead className="text-right">Profit/Loss</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredSales.length === 0 ? (
+                <div className="w-full overflow-x-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={isMobile ? 5 : 7} className="text-center py-10">
-                          No sales found
-                        </TableCell>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Product</TableHead>
+                        {!isMobile && <TableHead>Branch</TableHead>}
+                        {!isMobile && <TableHead>Customer</TableHead>}
+                        <TableHead className="text-center">Qty</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead className="text-right">Profit/Loss</TableHead>
                       </TableRow>
-                    ) : (
-                      filteredSales.map((sale) => {
-                        const profit = calculateProfit(sale);
-                        const isProfitable = profit >= 0;
-                        
-                        return (
-                          <TableRow key={sale.id}>
-                            <TableCell>
-                              <div>{new Date(sale.date).toLocaleDateString()}</div>
-                              {isMobile && (
-                                <div className="text-xs text-muted-foreground">
-                                  {sale.branch?.name || 'Unknown'} • {sale.customer?.name || 'Walk-in'}
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell className="font-medium">{sale.product?.name || 'Unknown'}</TableCell>
-                            {!isMobile && <TableCell>{sale.branch?.name || 'Unknown'}</TableCell>}
-                            {!isMobile && <TableCell>{sale.customer?.name || 'Walk-in'}</TableCell>}
-                            <TableCell className="text-center">{sale.quantity}</TableCell>
-                            <TableCell>{formatCurrency(sale.total)}</TableCell>
-                            <TableCell className={`text-right font-medium ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
-                              {isProfitable ? '+' : ''}{formatCurrency(profit)}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredSales.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={isMobile ? 5 : 7} className="text-center py-10">
+                            No sales found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredSales.map((sale) => {
+                          const profit = calculateProfit(sale);
+                          const isProfitable = profit >= 0;
+                          
+                          return (
+                            <TableRow key={sale.id}>
+                              <TableCell>
+                                <div>{new Date(sale.date).toLocaleDateString()}</div>
+                                {isMobile && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {sale.branch?.name || 'Unknown'} • {sale.customer?.name || 'Walk-in'}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">{sale.product?.name || 'Unknown'}</TableCell>
+                              {!isMobile && <TableCell>{sale.branch?.name || 'Unknown'}</TableCell>}
+                              {!isMobile && <TableCell>{sale.customer?.name || 'Walk-in'}</TableCell>}
+                              <TableCell className="text-center">{sale.quantity}</TableCell>
+                              <TableCell>{formatCurrency(sale.total)}</TableCell>
+                              <TableCell className={`text-right font-medium ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                                {isProfitable ? '+' : ''}{formatCurrency(profit)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>

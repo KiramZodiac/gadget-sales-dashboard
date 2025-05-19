@@ -8,6 +8,7 @@ import { useBusiness } from '@/context/BusinessContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
   TableBody,
@@ -311,70 +312,74 @@ const Products = () => {
           {isLoading ? (
             <div className="flex justify-center py-8">Loading products...</div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="hidden md:table-cell">Brand</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead className="hidden md:table-cell">Cost</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        No products found. Create your first product by clicking "Add Product".
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    products.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium">
-                          <div>
-                            {product.name}
-                            <div className="md:hidden text-xs text-muted-foreground">{product.brand}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">{product.brand}</TableCell>
-                        <TableCell>{formatCurrency(product.price)}</TableCell>
-                        <TableCell className="hidden md:table-cell">{formatCurrency(product.cost_price)}</TableCell>
-                        <TableCell>{product.quantity}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex flex-col sm:flex-row justify-end gap-2">
-                            <Button 
-                              variant="outline" 
-                              size={isMobile ? "sm" : "default"}
-                              onClick={() => handleOpenSaleDialog(product)}
-                              className="text-green-600 border-green-600 hover:bg-green-50"
-                            >
-                              <ShoppingCart className="h-4 w-4 mr-1" />
-                              {isMobile ? "" : "Sell"}
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => handleEditProduct(product)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => handleDeleteProduct(product.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+            <div className="rounded-md border">
+              <ScrollArea className="w-full">
+                <div className="w-full overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead className="hidden md:table-cell">Brand</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead className="hidden md:table-cell">Cost</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {products.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8">
+                            No products found. Create your first product by clicking "Add Product".
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        products.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell className="font-medium">
+                              <div>
+                                {product.name}
+                                <div className="md:hidden text-xs text-muted-foreground">{product.brand}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">{product.brand}</TableCell>
+                            <TableCell>{formatCurrency(product.price)}</TableCell>
+                            <TableCell className="hidden md:table-cell">{formatCurrency(product.cost_price)}</TableCell>
+                            <TableCell>{product.quantity}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex flex-col sm:flex-row justify-end gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size={isMobile ? "sm" : "default"}
+                                  onClick={() => handleOpenSaleDialog(product)}
+                                  className="text-green-600 border-green-600 hover:bg-green-50"
+                                >
+                                  <ShoppingCart className="h-4 w-4 mr-1" />
+                                  {isMobile ? "" : "Sell"}
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => handleEditProduct(product)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => handleDeleteProduct(product.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </ScrollArea>
             </div>
           )}
         </main>

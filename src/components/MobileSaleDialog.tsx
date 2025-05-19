@@ -52,7 +52,7 @@ export function MobileSaleDialog({
   const [branches, setBranches] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [branchId, setBranchId] = useState('');
-  const [customerId, setCustomerId] = useState('');
+  const [customerId, setCustomerId] = useState('no-customer'); // Changed default value
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch branches and customers when the dialog opens
@@ -140,7 +140,7 @@ export function MobileSaleDialog({
         .insert([{
           product_id: product.id,
           branch_id: branchId,
-          customer_id: customerId || null,
+          customer_id: customerId === 'no-customer' ? null : customerId, // Handle null customer
           quantity: saleQuantity,
           total: totalPrice,
           business_id: currentBusiness.id,
@@ -259,7 +259,7 @@ export function MobileSaleDialog({
                 <SelectValue placeholder="Select customer" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Walk-in Customer</SelectItem>
+                <SelectItem value="no-customer">Walk-in Customer</SelectItem>
                 {customers.map((customer) => (
                   <SelectItem key={customer.id} value={customer.id}>
                     {customer.name}
