@@ -156,6 +156,8 @@ export type Database = {
           image_url: string | null
           name: string
           price: number
+          sale_date: string | null
+          sold: boolean | null
         }
         Insert: {
           brand: string
@@ -166,6 +168,8 @@ export type Database = {
           image_url?: string | null
           name: string
           price: number
+          sale_date?: string | null
+          sold?: boolean | null
         }
         Update: {
           brand?: string
@@ -176,6 +180,8 @@ export type Database = {
           image_url?: string | null
           name?: string
           price?: number
+          sale_date?: string | null
+          sold?: boolean | null
         }
         Relationships: [
           {

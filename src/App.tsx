@@ -15,6 +15,7 @@ import Sales from "./pages/Sales";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
+// Create a new QueryClient instance
 const queryClient = new QueryClient();
 
 // Protected route component

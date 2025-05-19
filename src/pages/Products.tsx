@@ -25,7 +25,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ShoppingCart } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 
 interface Product {
   id: string;
@@ -34,6 +35,8 @@ interface Product {
   price: number;
   cost_price: number;
   image_url?: string;
+  sold?: boolean;
+  sale_date?: string;
 }
 
 const Products = () => {
@@ -77,7 +80,9 @@ const Products = () => {
   };
 
   useEffect(() => {
-    fetchProducts();
+    if (currentBusiness) {
+      fetchProducts();
+    }
   }, [currentBusiness]);
 
   const resetForm = () => {
@@ -128,6 +133,78 @@ const Products = () => {
         description: error.message || "An error occurred while deleting the product.",
       });
     }
+  };
+
+  const handleMarkAsSold = async (product: Product) => {
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from('products')
+        .update({
+          sold: true,
+          sale_date: now
+        })
+        .eq('id', product.id);
+      
+      if (error) throw error;
+      
+      // Create a sale record
+      const { error: saleError } = await supabase
+        .from('sales')
+        .insert([{
+          product_id: product.id,
+          branch_id: product.branch_id || (await getDefaultBranchId()),
+          quantity: 1,
+          total: product.price,
+          business_id: currentBusiness?.id,
+          date: now
+        }]);
+      
+      if (saleError) throw saleError;
+      
+      toast({
+        title: "Product marked as sold",
+        description: "Product has been successfully marked as sold.",
+      });
+      
+      fetchProducts();
+    } catch (error: any) {
+      console.error('Error marking product as sold:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to mark product as sold",
+        description: error.message || "An error occurred while marking the product as sold.",
+      });
+    }
+  };
+
+  // Helper function to get a default branch ID if needed
+  const getDefaultBranchId = async (): Promise<string> => {
+    if (!currentBusiness) throw new Error("No business selected");
+    
+    const { data, error } = await supabase
+      .from('branches')
+      .select('id')
+      .eq('business_id', currentBusiness.id)
+      .limit(1)
+      .single();
+    
+    if (error || !data) {
+      // If no branch exists, create a default one
+      const { data: newBranch, error: createError } = await supabase
+        .from('branches')
+        .insert({
+          name: 'Main Branch',
+          business_id: currentBusiness.id
+        })
+        .select('id')
+        .single();
+      
+      if (createError || !newBranch) throw new Error("Failed to create a default branch");
+      return newBranch.id;
+    }
+    
+    return data.id;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -277,13 +354,14 @@ const Products = () => {
                     <TableHead>Brand</TableHead>
                     <TableHead>Selling Price</TableHead>
                     <TableHead>Cost Price</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         No products found. Create your first product by clicking "Add Product".
                       </TableCell>
                     </TableRow>
@@ -294,11 +372,35 @@ const Products = () => {
                         <TableCell>{product.brand}</TableCell>
                         <TableCell>${product.price.toFixed(2)}</TableCell>
                         <TableCell>${product.cost_price.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {product.sold ? (
+                            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                              Sold {product.sale_date && new Date(product.sale_date).toLocaleDateString()}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                              In Stock
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
+                            {!product.sold && (
+                              <>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleMarkAsSold(product)}
+                                  className="text-green-600 border-green-600 hover:bg-green-50"
+                                >
+                                  <ShoppingCart className="h-4 w-4 mr-1" />
+                                  Mark as Sold
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(product.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>

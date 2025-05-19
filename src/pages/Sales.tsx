@@ -13,24 +13,71 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronDown, Plus, Search } from 'lucide-react';
 import { useBusiness } from '@/context/BusinessContext';
 import { Sale } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
+interface SaleFormData {
+  product_id: string;
+  branch_id: string;
+  customer_id: string;
+  quantity: string;
+  total: string;
+  date: string;
+}
+
 const Sales = () => {
   const { currentBusiness } = useBusiness();
   const { toast } = useToast();
+  
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const [products, setProducts] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  
+  const [formData, setFormData] = useState<SaleFormData>({
+    product_id: '',
+    branch_id: '',
+    customer_id: '',
+    quantity: '1',
+    total: '',
+    date: new Date().toISOString().split('T')[0]
+  });
   
   useEffect(() => {
     if (currentBusiness) {
       fetchSales();
+      fetchLookupData();
     }
   }, [currentBusiness]);
+  
+  // When product changes, update the total based on price * quantity
+  useEffect(() => {
+    if (formData.product_id && formData.quantity) {
+      const product = products.find(p => p.id === formData.product_id);
+      if (product) {
+        const total = product.price * Number(formData.quantity);
+        setFormData(prev => ({ ...prev, total: total.toString() }));
+      }
+    }
+  }, [formData.product_id, formData.quantity, products]);
   
   const fetchSales = async () => {
     if (!currentBusiness) return;
@@ -62,6 +109,113 @@ const Sales = () => {
     }
   };
   
+  const fetchLookupData = async () => {
+    if (!currentBusiness) return;
+    
+    try {
+      // Fetch products
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('business_id', currentBusiness.id)
+        .eq('sold', false);
+      
+      if (productsError) throw productsError;
+      setProducts(productsData || []);
+      
+      // Fetch branches
+      const { data: branchesData, error: branchesError } = await supabase
+        .from('branches')
+        .select('*')
+        .eq('business_id', currentBusiness.id);
+      
+      if (branchesError) throw branchesError;
+      setBranches(branchesData || []);
+      
+      // Fetch customers
+      const { data: customersData, error: customersError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('business_id', currentBusiness.id);
+      
+      if (customersError) throw customersError;
+      setCustomers(customersData || []);
+    } catch (error: any) {
+      console.error('Error fetching lookup data:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to load data",
+        description: error.message,
+      });
+    }
+  };
+  
+  const handleAddSale = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!currentBusiness) return;
+    
+    try {
+      const product = products.find(p => p.id === formData.product_id);
+      if (!product) throw new Error("Product not found");
+      
+      // Convert form data
+      const newSale = {
+        product_id: formData.product_id,
+        branch_id: formData.branch_id,
+        customer_id: formData.customer_id || null,
+        quantity: Number(formData.quantity),
+        total: Number(formData.total),
+        date: new Date(formData.date).toISOString(),
+        business_id: currentBusiness.id
+      };
+      
+      // Add the sale
+      const { error: saleError } = await supabase
+        .from('sales')
+        .insert([newSale]);
+      
+      if (saleError) throw saleError;
+      
+      // Mark the product as sold
+      const { error: productError } = await supabase
+        .from('products')
+        .update({
+          sold: true,
+          sale_date: new Date().toISOString()
+        })
+        .eq('id', formData.product_id);
+      
+      if (productError) throw productError;
+      
+      toast({
+        title: "Sale added successfully",
+        description: "The sale has been recorded and the product marked as sold.",
+      });
+      
+      setIsDialogOpen(false);
+      fetchSales();
+      fetchLookupData();
+      
+      // Reset form
+      setFormData({
+        product_id: '',
+        branch_id: '',
+        customer_id: '',
+        quantity: '1',
+        total: '',
+        date: new Date().toISOString().split('T')[0]
+      });
+    } catch (error: any) {
+      console.error('Error adding sale:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to add sale",
+        description: error.message,
+      });
+    }
+  };
+  
   // Calculate profit on each sale
   const calculateProfit = (sale: Sale) => {
     if (!sale.product) return 0;
@@ -83,14 +237,128 @@ const Sales = () => {
       <div className="flex-1 flex flex-col">
         <DashboardHeader 
           businessName={currentBusiness?.name || ""}
+          userBusinesses={[]}
+          onBusinessChange={() => {}}
         />
         
         <main className="flex-1 p-6 bg-muted/20">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">Sales</h1>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Add New Sale
-            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" /> Add New Sale
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Sale</DialogTitle>
+                  <DialogDescription>
+                    Record a new sale for your business
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddSale}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="product">Product</Label>
+                      <Select 
+                        value={formData.product_id}
+                        onValueChange={(value) => setFormData({ ...formData, product_id: value })}
+                        required
+                      >
+                        <SelectTrigger id="product">
+                          <SelectValue placeholder="Select a product" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map(product => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.name} - ${product.price}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="branch">Branch</Label>
+                      <Select 
+                        value={formData.branch_id}
+                        onValueChange={(value) => setFormData({ ...formData, branch_id: value })}
+                        required
+                      >
+                        <SelectTrigger id="branch">
+                          <SelectValue placeholder="Select a branch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {branches.map(branch => (
+                            <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="customer">Customer (Optional)</Label>
+                      <Select 
+                        value={formData.customer_id}
+                        onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+                      >
+                        <SelectTrigger id="customer">
+                          <SelectValue placeholder="Select a customer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Walk-in Customer</SelectItem>
+                          {customers.map(customer => (
+                            <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="quantity">Quantity</Label>
+                        <Input 
+                          id="quantity" 
+                          type="number" 
+                          min="1" 
+                          value={formData.quantity}
+                          onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="total">Total Price</Label>
+                        <Input 
+                          id="total" 
+                          type="number" 
+                          step="0.01"
+                          value={formData.total}
+                          onChange={(e) => setFormData({ ...formData, total: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="date">Sale Date</Label>
+                      <Input 
+                        id="date" 
+                        type="date" 
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button type="submit">Add Sale</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
           
           <div className="mb-6 relative">
