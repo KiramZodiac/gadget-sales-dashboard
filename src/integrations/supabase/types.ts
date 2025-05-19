@@ -156,6 +156,7 @@ export type Database = {
           image_url: string | null
           name: string
           price: number
+          quantity: number
           sale_date: string | null
           sold: boolean | null
         }
@@ -168,6 +169,7 @@ export type Database = {
           image_url?: string | null
           name: string
           price: number
+          quantity?: number
           sale_date?: string | null
           sold?: boolean | null
         }
@@ -180,6 +182,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           price?: number
+          quantity?: number
           sale_date?: string | null
           sold?: boolean | null
         }
