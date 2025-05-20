@@ -17,6 +17,7 @@ export function useIsMobile() {
     // Skip if window is not available (SSR)
     if (typeof window === 'undefined') return;
     
+    // Define handler for resize events
     const handleResize = () => {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     };

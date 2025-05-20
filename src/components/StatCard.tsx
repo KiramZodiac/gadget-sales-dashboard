@@ -44,22 +44,26 @@ const StatCard = ({
   const isPositive = change && change > 0;
 
   return (
-    <Card className={cn("dashboard-card overflow-hidden", className)}>
-      <CardContent className={cn("p-4 pt-4", isMobile && "p-3 pt-3")}>
+    <Card className={cn("dashboard-card", className)}>
+      <CardContent className={cn("p-4 pt-4", isMobile && "p-2 pt-2")}>
         <div className="flex items-start justify-between">
           <div className="max-w-[75%]">
-            <p className="stat-title truncate">{title}</p>
-            <p className={cn("stat-value truncate", isMobile ? "text-lg" : "text-xl")}>{formattedValue}</p>
+            <p className={cn("text-sm font-medium text-muted-foreground", isMobile && "text-xs")}>{title}</p>
+            <p className={cn("text-2xl font-bold", isMobile && "text-lg")}>{formattedValue}</p>
             
             {showChange && (
-              <div className={isPositive ? "stat-change-positive" : "stat-change-negative"}>
-                {isPositive ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+              <div className={cn("flex items-center text-xs", 
+                isPositive ? "text-green-600" : "text-red-600")}>
+                {isPositive ? 
+                  <TrendingUp className="h-3 w-3 mr-1" /> : 
+                  <TrendingDown className="h-3 w-3 mr-1" />
+                }
                 {Math.abs(change)}%
               </div>
             )}
             
             {description && (
-              <p className="stat-description truncate">{description}</p>
+              <p className="text-xs text-muted-foreground mt-1">{description}</p>
             )}
           </div>
           

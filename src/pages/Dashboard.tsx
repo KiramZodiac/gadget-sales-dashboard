@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useBusiness } from '@/context/BusinessContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 const Dashboard = () => {
   const { currentBusiness, businesses, setCurrentBusiness, createBusiness } = useBusiness();
@@ -255,6 +256,11 @@ const Dashboard = () => {
   // Calculate whether overall profit is positive or negative
   const isProfitPositive = dashboardStats.monthlyProfit >= 0;
 
+  // Check if there's any data to show
+  const hasData = recentSales.length > 0 || 
+                  (topProducts.length > 0 && topProducts.some(p => p.totalSold > 0)) || 
+                  salesByBranch.length > 0;
+
   return (
     <div className="min-h-screen flex">
       <Sidebar />
@@ -271,8 +277,8 @@ const Dashboard = () => {
           }}
         />
         
-        <main className="flex-1 p-6 bg-muted/20">
-          <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+        <main className={cn("flex-1 bg-muted/20", isMobile ? "p-3 overflow-y-auto" : "p-6")}>
+          <h1 className={cn("font-bold mb-6", isMobile ? "text-2xl" : "text-3xl")}>Dashboard</h1>
           
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
@@ -280,26 +286,27 @@ const Dashboard = () => {
             </div>
           ) : (
             <>
-              <div className={`grid grid-cols-1 ${!isMobile ? 'md:grid-cols-2 lg:grid-cols-4' : ''} gap-6 mb-8`}>
+              <div className={cn("grid gap-4 mb-6", 
+                isMobile ? "grid-cols-2" : "md:grid-cols-2 lg:grid-cols-4")}>
                 <StatCard 
                   title="Total Sales Today" 
                   value={dashboardStats.todaySales}
                   description="Number of transactions"
-                  icon={<Wallet className="h-5 w-5 text-primary" />}
+                  icon={<Wallet className="h-4 w-4 text-primary" />}
                 />
                 <StatCard 
                   title="Revenue Today" 
                   value={dashboardStats.revenueToday}
                   description="Total sales amount"
                   currency={true}
-                  icon={<ChartBar className="h-5 w-5 text-primary" />}
+                  icon={<ChartBar className="h-4 w-4 text-primary" />}
                 />
                 <StatCard 
                   title="Monthly Revenue" 
                   value={dashboardStats.monthlyRevenue}
                   description={`${new Date().toLocaleString('default', { month: 'long' })} Sales`}
                   currency={true}
-                  icon={<Calendar className="h-5 w-5 text-primary" />}
+                  icon={<Calendar className="h-4 w-4 text-primary" />}
                 />
                 <StatCard 
                   title={isProfitPositive ? "Monthly Profit" : "Monthly Loss"} 
@@ -307,25 +314,30 @@ const Dashboard = () => {
                   description={isProfitPositive ? "Profit growth" : "Looking to improve"}
                   change={dashboardStats.profitGrowth}
                   currency={true}
-                  icon={<AlertTriangle className="h-5 w-5 text-primary" />}
+                  icon={<AlertTriangle className="h-4 w-4 text-primary" />}
                   className={!isProfitPositive ? "border-red-300" : ""}
                 />
               </div>
               
               {salesByBranch.length > 0 && (
-                <div className="mb-8">
+                <div className="mb-6">
                   <SalesByBranchChart data={salesByBranch} />
                 </div>
               )}
               
-              <div className={`grid grid-cols-1 ${!isMobile ? 'lg:grid-cols-2' : ''} gap-6 mb-8`}>
-                {recentSales.length > 0 && <RecentSalesTable sales={recentSales} />}
-                {topProducts.length > 0 && <TopProductsTable products={topProducts} />}
-              </div>
-              
-              {recentSales.length === 0 && topProducts.length === 0 && salesByBranch.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No sales data available. Start by adding products and making sales.
+              {hasData ? (
+                <div className={cn("grid gap-6 mb-6", 
+                  isMobile ? "grid-cols-1" : "lg:grid-cols-2")}>
+                  {recentSales.length > 0 && <RecentSalesTable sales={recentSales} />}
+                  {topProducts.length > 0 && topProducts.some(p => p.totalSold > 0) && 
+                    <TopProductsTable products={topProducts} />}
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-card rounded-lg shadow p-6">
+                  <h3 className="text-lg font-semibold mb-2">No sales data available</h3>
+                  <p className="text-muted-foreground">
+                    Start by adding products and making sales to see your dashboard come alive.
+                  </p>
                 </div>
               )}
             </>

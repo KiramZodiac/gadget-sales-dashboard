@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { SalesByBranch } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface SalesByBranchChartProps {
   data: SalesByBranch[];
@@ -46,16 +47,16 @@ const SalesByBranchChart = ({ data }: SalesByBranchChartProps) => {
 
   // Simplified mobile view when there are many branches
   const simplifyDataForMobile = (originalData: SalesByBranch[]) => {
-    if (!isMobile || originalData.length <= 4) return originalData;
+    if (!isMobile || originalData.length <= 3) return originalData;
     
-    // For mobile with many branches, show top 3 and combine the rest
-    if (originalData.length > 4) {
+    // For mobile with many branches, show top 2 and combine the rest
+    if (originalData.length > 3) {
       // Sort by revenue
       const sortedData = [...originalData].sort((a, b) => b.revenue - a.revenue);
-      const top3 = sortedData.slice(0, 3);
+      const top2 = sortedData.slice(0, 2);
       
       // Combine the rest
-      const others = sortedData.slice(3).reduce(
+      const others = sortedData.slice(2).reduce(
         (acc, curr) => {
           return {
             branch: 'Others',
@@ -66,7 +67,7 @@ const SalesByBranchChart = ({ data }: SalesByBranchChartProps) => {
         { branch: 'Others', sales: 0, revenue: 0 }
       );
       
-      return [...top3, others];
+      return [...top2, others];
     }
     
     return originalData;
@@ -77,29 +78,29 @@ const SalesByBranchChart = ({ data }: SalesByBranchChartProps) => {
   return (
     <Card className="dashboard-card">
       <CardHeader className="pb-2">
-        <CardTitle>Sales by Branch</CardTitle>
+        <CardTitle className={cn("text-xl", isMobile && "text-lg")}>Sales by Branch</CardTitle>
       </CardHeader>
-      <CardContent className="h-[300px] w-full overflow-hidden">
+      <CardContent className={cn("h-[300px] w-full", isMobile && "h-[200px] p-2")}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
             margin={{
               top: 5,
-              right: isMobile ? 5 : 30,
-              left: isMobile ? 0 : 20,
-              bottom: 5,
+              right: isMobile ? 0 : 20,
+              left: isMobile ? -20 : 0, 
+              bottom: isMobile ? 0 : 5,
             }}
             barSize={isMobile ? 15 : 20}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="branch" 
-              tick={{ fontSize: isMobile ? 10 : 12 }}
-              tickFormatter={isMobile ? (value) => value.substring(0, 6) + (value.length > 6 ? '...' : '') : undefined}
+              tick={{ fontSize: isMobile ? 9 : 12 }}
+              tickFormatter={isMobile ? (value) => value.substring(0, 5) + (value.length > 5 ? '...' : '') : undefined}
             />
             <YAxis 
-              tick={{ fontSize: isMobile ? 10 : 12 }} 
-              width={isMobile ? 30 : 50}
+              tick={{ fontSize: isMobile ? 9 : 12 }} 
+              width={isMobile ? 25 : 50}
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="sales" name="Sales" fill="#0ea5e9" />
