@@ -45,11 +45,11 @@ const StatCard = ({
 
   return (
     <Card className={cn("dashboard-card", className)}>
-      <CardContent className={cn("p-4 pt-4", isMobile && "p-2 pt-2")}>
+      <CardContent className={cn("p-4 pt-4", isMobile && "p-3 pt-3")}>
         <div className="flex items-start justify-between">
           <div className="max-w-[75%]">
             <p className={cn("text-sm font-medium text-muted-foreground", isMobile && "text-xs")}>{title}</p>
-            <p className={cn("text-2xl font-bold", isMobile && "text-lg")}>{formattedValue}</p>
+            <p className={cn("text-2xl font-bold", isMobile && "text-base")}>{formattedValue}</p>
             
             {showChange && (
               <div className={cn("flex items-center text-xs", 
