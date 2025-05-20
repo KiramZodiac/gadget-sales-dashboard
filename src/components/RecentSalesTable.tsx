@@ -37,32 +37,63 @@ const RecentSalesTable = ({ sales }: RecentSalesTableProps) => {
     }).format(amount);
   };
 
+  // Mobile card view of sales
+  const MobileSaleCard = ({ sale }: { sale: Sale }) => {
+    const profit = calculateProfit(sale);
+    const isProfitable = profit >= 0;
+    
+    return (
+      <div className="p-4 border rounded-lg mb-3">
+        <div className="flex justify-between">
+          <div className="font-medium">{sale.product?.name || 'Unknown'}</div>
+          <Badge variant={isProfitable ? "profit" : "loss"}>
+            {isProfitable ? '+' : ''}{formatCurrency(profit)}
+          </Badge>
+        </div>
+        <div className="text-xs text-muted-foreground mt-1">
+          {new Date(sale.date).toLocaleDateString()} • {sale.branch?.name || 'Unknown'}
+        </div>
+        <div className="flex justify-between items-center mt-2">
+          <div>Qty: {sale.quantity}</div>
+          <div className="font-medium">{formatCurrency(sale.total)}</div>
+        </div>
+        {sale.customer && (
+          <div className="text-xs mt-1">Customer: {sale.customer.name}</div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Card className="dashboard-card col-span-2">
       <CardHeader className="pb-2">
         <CardTitle>Recent Sales</CardTitle>
       </CardHeader>
-      <CardContent className="p-0 overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Product</TableHead>
-              {!isMobile && <TableHead>Branch</TableHead>}
-              {!isMobile && <TableHead>Customer</TableHead>}
-              <TableHead className="text-center">Qty</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead className="text-right">Profit/Loss</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sales.length === 0 ? (
+      <CardContent className={isMobile ? "p-4" : "p-0 overflow-x-auto"}>
+        {sales.length === 0 ? (
+          <div className="text-center py-4 text-muted-foreground">
+            No recent sales data available
+          </div>
+        ) : isMobile ? (
+          <div className="space-y-2">
+            {sales.map((sale) => (
+              <MobileSaleCard key={sale.id} sale={sale} />
+            ))}
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={isMobile ? 4 : 6} className="text-center py-4 text-muted-foreground">
-                  No recent sales data available
-                </TableCell>
+                <TableHead>Product</TableHead>
+                <TableHead>Branch</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead className="text-center">Qty</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead className="text-right">Profit/Loss</TableHead>
               </TableRow>
-            ) : (
-              sales.map((sale) => {
+            </TableHeader>
+            <TableBody>
+              {sales.map((sale) => {
                 const profit = calculateProfit(sale);
                 const isProfitable = profit >= 0;
                 
@@ -70,14 +101,9 @@ const RecentSalesTable = ({ sales }: RecentSalesTableProps) => {
                   <TableRow key={sale.id}>
                     <TableCell className="font-medium">
                       {sale.product?.name || 'Unknown'}
-                      {isMobile && (
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(sale.date).toLocaleDateString()} • {sale.branch?.name || 'Unknown'}
-                        </div>
-                      )}
                     </TableCell>
-                    {!isMobile && <TableCell>{sale.branch?.name || 'Unknown'}</TableCell>}
-                    {!isMobile && <TableCell>{sale.customer?.name || 'Walk-in'}</TableCell>}
+                    <TableCell>{sale.branch?.name || 'Unknown'}</TableCell>
+                    <TableCell>{sale.customer?.name || 'Walk-in'}</TableCell>
                     <TableCell className="text-center">{sale.quantity}</TableCell>
                     <TableCell>{formatCurrency(sale.total)}</TableCell>
                     <TableCell className="text-right">
@@ -87,10 +113,10 @@ const RecentSalesTable = ({ sales }: RecentSalesTableProps) => {
                     </TableCell>
                   </TableRow>
                 );
-              })
-            )}
-          </TableBody>
-        </Table>
+              })}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );

@@ -200,7 +200,7 @@ export function MobileSaleDialog({
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetContent className="w-full sm:max-w-md">
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto max-h-[100dvh]">
         <SheetHeader>
           <SheetTitle>Sell Product</SheetTitle>
           <SheetDescription>
@@ -211,7 +211,7 @@ export function MobileSaleDialog({
         <div className="py-6 space-y-4">
           <div className="space-y-1">
             <Label>Product</Label>
-            <div className="font-medium">{product.name} ({product.brand})</div>
+            <div className="font-medium break-words">{product.name} ({product.brand})</div>
           </div>
           
           <div className="space-y-1">
@@ -233,13 +233,14 @@ export function MobileSaleDialog({
               max={product.quantity.toString()}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
+              className="w-full"
             />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="branch">Branch</Label>
             <Select value={branchId} onValueChange={setBranchId}>
-              <SelectTrigger id="branch">
+              <SelectTrigger id="branch" className="w-full">
                 <SelectValue placeholder="Select branch" />
               </SelectTrigger>
               <SelectContent>
@@ -255,7 +256,7 @@ export function MobileSaleDialog({
           <div className="space-y-2">
             <Label htmlFor="customer">Customer (Optional)</Label>
             <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger id="customer">
+              <SelectTrigger id="customer" className="w-full">
                 <SelectValue placeholder="Select customer" />
               </SelectTrigger>
               <SelectContent>
@@ -275,7 +276,7 @@ export function MobileSaleDialog({
           </div>
         </div>
         
-        <SheetFooter>
+        <SheetFooter className="pb-8">
           <Button 
             onClick={handleSale}
             disabled={isLoading || parseInt(quantity) <= 0 || parseInt(quantity) > product.quantity}

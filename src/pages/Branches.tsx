@@ -26,6 +26,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Branch {
   id: string;
@@ -36,9 +37,11 @@ interface Branch {
 const Branches = () => {
   const { toast } = useToast();
   const { currentBusiness } = useBusiness();
+  const isMobile = useIsMobile();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -95,8 +98,9 @@ const Branches = () => {
   };
 
   const handleDeleteBranch = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this branch?")) return;
+    if (!confirm("Are you sure you want to delete this branch? This will also delete all sales and inventory records associated with this branch.")) return;
 
+    setIsDeleting(true);
     try {
       const { error } = await supabase
         .from('branches')
@@ -107,7 +111,7 @@ const Branches = () => {
       
       toast({
         title: "Branch deleted",
-        description: "Branch has been successfully deleted.",
+        description: "Branch and all associated records have been successfully deleted.",
       });
       
       fetchBranches();
@@ -118,6 +122,8 @@ const Branches = () => {
         title: "Failed to delete branch",
         description: error.message || "An error occurred while deleting the branch.",
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -172,8 +178,33 @@ const Branches = () => {
     }
   };
 
+  // Mobile card view
+  const BranchCard = ({ branch }: { branch: Branch }) => (
+    <div className="bg-card rounded-lg border p-4 mb-3">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="font-medium text-lg">{branch.name}</h3>
+          <p className="text-muted-foreground">{branch.location || 'No location specified'}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="icon" onClick={() => handleEditBranch(branch)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => handleDeleteBranch(branch.id)}
+            disabled={isDeleting}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col">
       <Sidebar />
       
       <div className="flex-1 flex flex-col">
@@ -183,9 +214,9 @@ const Branches = () => {
           onBusinessChange={() => {}}
         />
         
-        <main className="flex-1 p-6 bg-muted/20">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">Branches</h1>
+        <main className="flex-1 p-4 md:p-6 bg-muted/20 overflow-x-hidden">
+          <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold">Branches</h1>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={() => {
@@ -195,7 +226,7 @@ const Branches = () => {
                   <Plus className="mr-2 h-4 w-4" /> Add Branch
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md mx-4">
                 <DialogHeader>
                   <DialogTitle>{isEditing ? 'Edit Branch' : 'Add New Branch'}</DialogTitle>
                   <DialogDescription>
@@ -233,43 +264,70 @@ const Branches = () => {
           {isLoading ? (
             <div className="flex justify-center py-8">Loading branches...</div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <>
+              {isMobile ? (
+                <div className="space-y-2">
                   {branches.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8">
-                        No branches found. Create your first branch by clicking "Add Branch".
-                      </TableCell>
-                    </TableRow>
+                    <div className="text-center py-8 text-muted-foreground">
+                      No branches found. Create your first branch by clicking "Add Branch".
+                    </div>
                   ) : (
                     branches.map((branch) => (
-                      <TableRow key={branch.id}>
-                        <TableCell>{branch.name}</TableCell>
-                        <TableCell>{branch.location || 'Not specified'}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditBranch(branch)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteBranch(branch.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                      <BranchCard key={branch.id} branch={branch} />
                     ))
                   )}
-                </TableBody>
-              </Table>
-            </div>
+                </div>
+              ) : (
+                <div className="rounded-md border overflow-hidden">
+                  <div className="w-full overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {branches.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center py-8">
+                              No branches found. Create your first branch by clicking "Add Branch".
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          branches.map((branch) => (
+                            <TableRow key={branch.id}>
+                              <TableCell>{branch.name}</TableCell>
+                              <TableCell>{branch.location || 'Not specified'}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => handleEditBranch(branch)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => handleDeleteBranch(branch.id)}
+                                    disabled={isDeleting}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>

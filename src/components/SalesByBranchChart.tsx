@@ -39,6 +39,36 @@ const SalesByBranchChart = ({ data }: SalesByBranchChartProps) => {
     return null;
   };
 
+  // Simplified mobile view when there are many branches
+  const simplifyDataForMobile = (originalData: SalesByBranch[]) => {
+    if (!isMobile || originalData.length <= 4) return originalData;
+    
+    // For mobile with many branches, show top 3 and combine the rest
+    if (originalData.length > 4) {
+      // Sort by revenue
+      const sortedData = [...originalData].sort((a, b) => b.revenue - a.revenue);
+      const top3 = sortedData.slice(0, 3);
+      
+      // Combine the rest
+      const others = sortedData.slice(3).reduce(
+        (acc, curr) => {
+          return {
+            branch: 'Others',
+            sales: acc.sales + curr.sales,
+            revenue: acc.revenue + curr.revenue
+          };
+        },
+        { branch: 'Others', sales: 0, revenue: 0 }
+      );
+      
+      return [...top3, others];
+    }
+    
+    return originalData;
+  };
+
+  const chartData = simplifyDataForMobile(data);
+
   return (
     <Card className="dashboard-card col-span-2">
       <CardHeader className="pb-2">
@@ -52,16 +82,21 @@ const SalesByBranchChart = ({ data }: SalesByBranchChartProps) => {
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={data}
+              data={chartData}
               margin={{
                 top: 5,
                 right: isMobile ? 5 : 30,
                 left: isMobile ? 0 : 20,
                 bottom: 5,
               }}
+              barSize={isMobile ? 15 : 20}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="branch" tick={{ fontSize: isMobile ? 10 : 12 }} />
+              <XAxis 
+                dataKey="branch" 
+                tick={{ fontSize: isMobile ? 10 : 12 }}
+                tickFormatter={isMobile ? (value) => value.substring(0, 6) + (value.length > 6 ? '...' : '') : undefined}
+              />
               <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="sales" name="Sales" fill="#0ea5e9" />
