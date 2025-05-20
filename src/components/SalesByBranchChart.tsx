@@ -12,6 +12,11 @@ interface SalesByBranchChartProps {
 const SalesByBranchChart = ({ data }: SalesByBranchChartProps) => {
   const isMobile = useIsMobile();
 
+  // If no data, don't render the chart
+  if (data.length === 0) {
+    return null;
+  }
+
   // Format currency in Ugandan shillings
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-UG', {
@@ -70,40 +75,37 @@ const SalesByBranchChart = ({ data }: SalesByBranchChartProps) => {
   const chartData = simplifyDataForMobile(data);
 
   return (
-    <Card className="dashboard-card col-span-2">
+    <Card className="dashboard-card">
       <CardHeader className="pb-2">
         <CardTitle>Sales by Branch</CardTitle>
       </CardHeader>
-      <CardContent className="h-[300px]">
-        {data.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            No sales data available by branch
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{
-                top: 5,
-                right: isMobile ? 5 : 30,
-                left: isMobile ? 0 : 20,
-                bottom: 5,
-              }}
-              barSize={isMobile ? 15 : 20}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="branch" 
-                tick={{ fontSize: isMobile ? 10 : 12 }}
-                tickFormatter={isMobile ? (value) => value.substring(0, 6) + (value.length > 6 ? '...' : '') : undefined}
-              />
-              <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="sales" name="Sales" fill="#0ea5e9" />
-              <Bar dataKey="revenue" name="Revenue" fill="#2563eb" />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
+      <CardContent className="h-[300px] w-full overflow-hidden">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={chartData}
+            margin={{
+              top: 5,
+              right: isMobile ? 5 : 30,
+              left: isMobile ? 0 : 20,
+              bottom: 5,
+            }}
+            barSize={isMobile ? 15 : 20}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="branch" 
+              tick={{ fontSize: isMobile ? 10 : 12 }}
+              tickFormatter={isMobile ? (value) => value.substring(0, 6) + (value.length > 6 ? '...' : '') : undefined}
+            />
+            <YAxis 
+              tick={{ fontSize: isMobile ? 10 : 12 }} 
+              width={isMobile ? 30 : 50}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar dataKey="sales" name="Sales" fill="#0ea5e9" />
+            <Bar dataKey="revenue" name="Revenue" fill="#2563eb" />
+          </BarChart>
+        </ResponsiveContainer>
       </CardContent>
     </Card>
   );

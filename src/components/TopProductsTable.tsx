@@ -19,6 +19,11 @@ interface TopProductsTableProps {
 const TopProductsTable = ({ products }: TopProductsTableProps) => {
   const isMobile = useIsMobile();
   
+  // If there are no products, don't render the card at all
+  if (products.length === 0) {
+    return null;
+  }
+  
   // Format currency in Ugandan shillings
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-UG', {
@@ -47,11 +52,7 @@ const TopProductsTable = ({ products }: TopProductsTableProps) => {
         <CardTitle>Top Selling Products</CardTitle>
       </CardHeader>
       <CardContent className={isMobile ? "p-4" : "px-0 overflow-x-auto"}>
-        {products.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">
-            No product sales data available
-          </div>
-        ) : isMobile ? (
+        {isMobile ? (
           <div className="space-y-2">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />

@@ -44,12 +44,12 @@ const StatCard = ({
   const isPositive = change && change > 0;
 
   return (
-    <Card className={cn("dashboard-card", className)}>
+    <Card className={cn("dashboard-card overflow-hidden", className)}>
       <CardContent className={cn("p-4 pt-4", isMobile && "p-3 pt-3")}>
         <div className="flex items-start justify-between">
-          <div>
-            <p className="stat-title">{title}</p>
-            <p className={cn("stat-value", isMobile && "text-xl")}>{formattedValue}</p>
+          <div className="max-w-[75%]">
+            <p className="stat-title truncate">{title}</p>
+            <p className={cn("stat-value truncate", isMobile ? "text-lg" : "text-xl")}>{formattedValue}</p>
             
             {showChange && (
               <div className={isPositive ? "stat-change-positive" : "stat-change-negative"}>
@@ -59,12 +59,12 @@ const StatCard = ({
             )}
             
             {description && (
-              <p className="stat-description">{description}</p>
+              <p className="stat-description truncate">{description}</p>
             )}
           </div>
           
           {icon && (
-            <div className="rounded-md bg-primary/10 p-2">
+            <div className="rounded-md bg-primary/10 p-2 flex-shrink-0">
               {icon}
             </div>
           )}

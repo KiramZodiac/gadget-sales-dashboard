@@ -12,10 +12,12 @@ import { ChartBar, Calendar, Wallet, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useBusiness } from '@/context/BusinessContext';
 import { useToast } from '@/components/ui/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Dashboard = () => {
   const { currentBusiness, businesses, setCurrentBusiness, createBusiness } = useBusiness();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   // State for dashboard data
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
@@ -53,81 +55,105 @@ const Dashboard = () => {
       if (salesError) throw salesError;
       setRecentSales(salesData || []);
       
-      // Fetch top products
-      // In a real implementation, this would be a more complex query 
-      // using group by and sum functions
-      const { data: products, error: productsError } = await supabase
+      // Check if there are any products before fetching top products
+      const { count: productCount, error: countError } = await supabase
         .from('products')
-        .select('*')
-        .eq('business_id', currentBusiness.id)
-        .limit(5);
+        .select('*', { count: 'exact', head: true })
+        .eq('business_id', currentBusiness.id);
         
-      if (productsError) throw productsError;
+      if (countError) throw countError;
+      
+      // If no products exist, set topProducts to empty array and skip the rest
+      if (productCount === 0) {
+        setTopProducts([]);
+      } else {
+        // Fetch top products
+        const { data: products, error: productsError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('business_id', currentBusiness.id)
+          .limit(5);
+          
+        if (productsError) throw productsError;
 
-      // Get sales totals for products (in real app, use a database query for this)
-      const { data: allSales, error: allSalesError } = await supabase
-        .from('sales')
-        .select('product_id, quantity, total')
-        .eq('business_id', currentBusiness.id);
-        
-      if (allSalesError) throw allSalesError;
-      
-      // Calculate top products based on sales data
-      const productSales: Record<string, { totalSold: number, totalRevenue: number }> = {};
-      
-      allSales?.forEach(sale => {
-        if (!productSales[sale.product_id]) {
-          productSales[sale.product_id] = { totalSold: 0, totalRevenue: 0 };
-        }
-        productSales[sale.product_id].totalSold += sale.quantity;
-        productSales[sale.product_id].totalRevenue += sale.total;
-      });
-      
-      const topProductsData: TopProduct[] = products?.map(product => ({
-        id: product.id,
-        name: product.name,
-        brand: product.brand,
-        totalSold: productSales[product.id]?.totalSold || 0,
-        totalRevenue: productSales[product.id]?.totalRevenue || 0,
-      })) || [];
-      
-      // Sort by total revenue
-      topProductsData.sort((a, b) => b.totalRevenue - a.totalRevenue);
-      setTopProducts(topProductsData);
-      
-      // Fetch branches
-      const { data: branches, error: branchesError } = await supabase
-        .from('branches')
-        .select('id, name')
-        .eq('business_id', currentBusiness.id);
-        
-      if (branchesError) throw branchesError;
-      
-      // Calculate sales by branch
-      const branchSalesData: SalesByBranch[] = [];
-      
-      if (branches) {
-        for (const branch of branches) {
-          const { data: branchSales, error: branchSalesError } = await supabase
-            .from('sales')
-            .select('quantity, total')
-            .eq('business_id', currentBusiness.id)
-            .eq('branch_id', branch.id);
-            
-          if (branchSalesError) throw branchSalesError;
+        // Get sales totals for products
+        const { data: allSales, error: allSalesError } = await supabase
+          .from('sales')
+          .select('product_id, quantity, total')
+          .eq('business_id', currentBusiness.id);
           
-          const totalSales = branchSales?.length || 0;
-          const totalRevenue = branchSales?.reduce((sum, sale) => sum + sale.total, 0) || 0;
-          
-          branchSalesData.push({
-            branch: branch.name,
-            sales: totalSales,
-            revenue: totalRevenue
-          });
-        }
+        if (allSalesError) throw allSalesError;
+        
+        // Calculate top products based on sales data
+        const productSales: Record<string, { totalSold: number, totalRevenue: number }> = {};
+        
+        allSales?.forEach(sale => {
+          if (!productSales[sale.product_id]) {
+            productSales[sale.product_id] = { totalSold: 0, totalRevenue: 0 };
+          }
+          productSales[sale.product_id].totalSold += sale.quantity;
+          productSales[sale.product_id].totalRevenue += sale.total;
+        });
+        
+        const topProductsData: TopProduct[] = products?.map(product => ({
+          id: product.id,
+          name: product.name,
+          brand: product.brand,
+          totalSold: productSales[product.id]?.totalSold || 0,
+          totalRevenue: productSales[product.id]?.totalRevenue || 0,
+        })) || [];
+        
+        // Sort by total revenue
+        topProductsData.sort((a, b) => b.totalRevenue - a.totalRevenue);
+        setTopProducts(topProductsData);
       }
       
-      setSalesByBranch(branchSalesData);
+      // Check if any branches exist
+      const { count: branchCount, error: branchCountError } = await supabase
+        .from('branches')
+        .select('*', { count: 'exact', head: true })
+        .eq('business_id', currentBusiness.id);
+        
+      if (branchCountError) throw branchCountError;
+      
+      // If no branches exist, set salesByBranch to empty array
+      if (branchCount === 0) {
+        setSalesByBranch([]);
+      } else {
+        // Fetch branches
+        const { data: branches, error: branchesError } = await supabase
+          .from('branches')
+          .select('id, name')
+          .eq('business_id', currentBusiness.id);
+          
+        if (branchesError) throw branchesError;
+        
+        // Calculate sales by branch
+        const branchSalesData: SalesByBranch[] = [];
+        
+        if (branches) {
+          for (const branch of branches) {
+            const { data: branchSales, error: branchSalesError } = await supabase
+              .from('sales')
+              .select('quantity, total')
+              .eq('business_id', currentBusiness.id)
+              .eq('branch_id', branch.id);
+              
+            if (branchSalesError) throw branchSalesError;
+            
+            const totalSales = branchSales?.length || 0;
+            const totalRevenue = branchSales?.reduce((sum, sale) => sum + sale.total, 0) || 0;
+            
+            branchSalesData.push({
+              branch: branch.name,
+              sales: totalSales,
+              revenue: totalRevenue
+            });
+          }
+        }
+        
+        setSalesByBranch(branchSalesData);
+      }
       
       // Calculate today's date and first day of month for filters
       const today = new Date();
@@ -254,7 +280,7 @@ const Dashboard = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className={`grid grid-cols-1 ${!isMobile ? 'md:grid-cols-2 lg:grid-cols-4' : ''} gap-6 mb-8`}>
                 <StatCard 
                   title="Total Sales Today" 
                   value={dashboardStats.todaySales}
@@ -265,12 +291,14 @@ const Dashboard = () => {
                   title="Revenue Today" 
                   value={dashboardStats.revenueToday}
                   description="Total sales amount"
+                  currency={true}
                   icon={<ChartBar className="h-5 w-5 text-primary" />}
                 />
                 <StatCard 
                   title="Monthly Revenue" 
                   value={dashboardStats.monthlyRevenue}
                   description={`${new Date().toLocaleString('default', { month: 'long' })} Sales`}
+                  currency={true}
                   icon={<Calendar className="h-5 w-5 text-primary" />}
                 />
                 <StatCard 
@@ -278,19 +306,28 @@ const Dashboard = () => {
                   value={Math.abs(dashboardStats.monthlyProfit)}
                   description={isProfitPositive ? "Profit growth" : "Looking to improve"}
                   change={dashboardStats.profitGrowth}
+                  currency={true}
                   icon={<AlertTriangle className="h-5 w-5 text-primary" />}
                   className={!isProfitPositive ? "border-red-300" : ""}
                 />
               </div>
               
-              <div className="mb-8">
-                <SalesByBranchChart data={salesByBranch} />
+              {salesByBranch.length > 0 && (
+                <div className="mb-8">
+                  <SalesByBranchChart data={salesByBranch} />
+                </div>
+              )}
+              
+              <div className={`grid grid-cols-1 ${!isMobile ? 'lg:grid-cols-2' : ''} gap-6 mb-8`}>
+                {recentSales.length > 0 && <RecentSalesTable sales={recentSales} />}
+                {topProducts.length > 0 && <TopProductsTable products={topProducts} />}
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <RecentSalesTable sales={recentSales} />
-                <TopProductsTable products={topProducts} />
-              </div>
+              {recentSales.length === 0 && topProducts.length === 0 && salesByBranch.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No sales data available. Start by adding products and making sales.
+                </div>
+              )}
             </>
           )}
         </main>
