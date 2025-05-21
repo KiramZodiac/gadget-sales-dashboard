@@ -265,67 +265,67 @@ const Branches = () => {
             <div className="flex justify-center py-8">Loading branches...</div>
           ) : (
             <>
-              {isMobile ? (
-                <div className="space-y-2">
-                  {branches.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No branches found. Create your first branch by clicking "Add Branch".
-                    </div>
-                  ) : (
-                    branches.map((branch) => (
-                      <BranchCard key={branch.id} branch={branch} />
-                    ))
-                  )}
+              {branches.length === 0 ? (
+                <div className="text-center p-8 bg-white border rounded-md shadow-sm">
+                  <h3 className="text-lg font-medium mb-2">No branches found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create your first branch by clicking "Add Branch".
+                  </p>
+                  <Button onClick={() => setIsDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Your First Branch
+                  </Button>
                 </div>
               ) : (
-                <div className="rounded-md border overflow-hidden">
-                  <div className="w-full overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Location</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {branches.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={3} className="text-center py-8">
-                              No branches found. Create your first branch by clicking "Add Branch".
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          branches.map((branch) => (
-                            <TableRow key={branch.id}>
-                              <TableCell>{branch.name}</TableCell>
-                              <TableCell>{branch.location || 'Not specified'}</TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    onClick={() => handleEditBranch(branch)}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    onClick={() => handleDeleteBranch(branch.id)}
-                                    disabled={isDeleting}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
+                <>
+                  {isMobile ? (
+                    <div className="space-y-2">
+                      {branches.map((branch) => (
+                        <BranchCard key={branch.id} branch={branch} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-md border overflow-hidden bg-white">
+                      <div className="w-full overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Location</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
+                          </TableHeader>
+                          <TableBody>
+                            {branches.map((branch) => (
+                              <TableRow key={branch.id}>
+                                <TableCell>{branch.name}</TableCell>
+                                <TableCell>{branch.location || 'Not specified'}</TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      onClick={() => handleEditBranch(branch)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      onClick={() => handleDeleteBranch(branch.id)}
+                                      disabled={isDeleting}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

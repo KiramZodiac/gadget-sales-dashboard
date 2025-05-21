@@ -21,6 +21,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -55,10 +57,12 @@ export function DesktopSaleDialog({
   const [customerId, setCustomerId] = useState('no-customer');
   const [isLoading, setIsLoading] = useState(false);
   const [salePrice, setSalePrice] = useState('');
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Fetch branches and customers when the dialog opens
   useEffect(() => {
     if (isOpen && currentBusiness && product) {
+      setIsLoadingData(true);
       fetchBranchesAndCustomers();
       setQuantity('1');
       setSalePrice(product.price.toString());
@@ -81,11 +85,7 @@ export function DesktopSaleDialog({
       if (branchesData && branchesData.length > 0) {
         setBranchId(branchesData[0].id);
       } else {
-        toast({
-          title: "No branches found",
-          description: "Please create at least one branch before selling products.",
-          variant: "destructive"
-        });
+        setBranchId('');
       }
       
       // Fetch customers
@@ -103,15 +103,26 @@ export function DesktopSaleDialog({
         title: "Failed to load data",
         description: error.message,
       });
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
   const handleSale = async () => {
-    if (!product || !currentBusiness || !branchId) {
+    if (!product || !currentBusiness) {
       toast({
         variant: "destructive",
         title: "Unable to process sale",
-        description: !branchId ? "Please create a branch first." : "Missing required information to complete the sale.",
+        description: "Missing required information to complete the sale.",
+      });
+      return;
+    }
+    
+    if (!branchId) {
+      toast({
+        variant: "destructive",
+        title: "No branch selected",
+        description: "Please create at least one branch before selling products.",
       });
       return;
     }
@@ -170,27 +181,15 @@ export function DesktopSaleDialog({
       // Update product quantity
       const newQuantity = product.quantity - saleQuantity;
       
-      if (newQuantity > 0) {
-        // If there are products left, update quantity
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({ quantity: newQuantity })
-          .eq('id', product.id);
-        
-        if (updateError) throw updateError;
-      } else {
-        // If no products left, mark as sold
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({
-            quantity: 0,
-            sold: true,
-            sale_date: now
-          })
-          .eq('id', product.id);
-        
-        if (updateError) throw updateError;
-      }
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ 
+          quantity: newQuantity,
+          sold: newQuantity <= 0
+        })
+        .eq('id', product.id);
+      
+      if (updateError) throw updateError;
       
       toast({
         title: "Product sold successfully",
@@ -215,6 +214,7 @@ export function DesktopSaleDialog({
 
   // Calculate the total price based on quantity and updated sale price
   const totalPrice = parseFloat(salePrice || '0') * parseInt(quantity || '0');
+  const noBranches = branches.length === 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -226,100 +226,118 @@ export function DesktopSaleDialog({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium">Product</Label>
-              <div>{product.name}</div>
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Brand</Label>
-              <div>{product.brand}</div>
-            </div>
+        {isLoadingData ? (
+          <div className="py-8 text-center">Loading...</div>
+        ) : noBranches ? (
+          <div className="py-6 space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                You need to create at least one branch before you can sell products.
+              </AlertDescription>
+            </Alert>
+            <Button 
+              onClick={() => {
+                setIsOpen(false);
+                window.location.href = '/branches';
+              }}
+              className="w-full"
+            >
+              Go to Branches Page
+            </Button>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium">Available</Label>
-              <div>{product.quantity} units</div>
+        ) : (
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Product</Label>
+                <div>{product.name}</div>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Brand</Label>
+                <div>{product.brand}</div>
+              </div>
             </div>
-            <div>
-              <Label className="text-sm font-medium">Suggested Price</Label>
-              <div>{formatCurrency(product.price)}</div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Available</Label>
+                <div>{product.quantity} units</div>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Suggested Price</Label>
+                <div>{formatCurrency(product.price)}</div>
+              </div>
             </div>
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="salePrice">Selling Price (UGX)</Label>
-            <Input 
-              id="salePrice" 
-              type="number"
-              min="0"
-              step="100"
-              value={salePrice}
-              onChange={(e) => setSalePrice(e.target.value)}
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="quantity">Quantity to Sell</Label>
-            <Input 
-              id="quantity" 
-              type="number"
-              min="1"
-              max={product.quantity.toString()}
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="branch">Branch</Label>
-            <Select value={branchId} onValueChange={setBranchId}>
-              <SelectTrigger id="branch">
-                <SelectValue placeholder="Select branch" />
-              </SelectTrigger>
-              <SelectContent>
-                {branches.length === 0 ? (
-                  <SelectItem value="" disabled>No branches available - create a branch first</SelectItem>
-                ) : (
-                  branches.map((branch) => (
+            
+            <div className="grid gap-2">
+              <Label htmlFor="salePrice">Selling Price (UGX)</Label>
+              <Input 
+                id="salePrice" 
+                type="number"
+                min="0"
+                step="100"
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="quantity">Quantity to Sell</Label>
+              <Input 
+                id="quantity" 
+                type="number"
+                min="1"
+                max={product.quantity.toString()}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="branch">Branch</Label>
+              <Select value={branchId} onValueChange={setBranchId}>
+                <SelectTrigger id="branch">
+                  <SelectValue placeholder="Select branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((branch) => (
                     <SelectItem key={branch.id} value={branch.id}>
                       {branch.name}
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="customer">Customer (Optional)</Label>
+              <Select value={customerId} onValueChange={setCustomerId}>
+                <SelectTrigger id="customer">
+                  <SelectValue placeholder="Select customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no-customer">Walk-in Customer</SelectItem>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="pt-2 border-t mt-2">
+              <Label className="text-sm font-medium">Total Sale Price</Label>
+              <div className="text-lg font-bold">{formatCurrency(totalPrice)}</div>
+            </div>
           </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="customer">Customer (Optional)</Label>
-            <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger id="customer">
-                <SelectValue placeholder="Select customer" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="no-customer">Walk-in Customer</SelectItem>
-                {customers.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="pt-2 border-t mt-2">
-            <Label className="text-sm font-medium">Total Sale Price</Label>
-            <div className="text-lg font-bold">{formatCurrency(totalPrice)}</div>
-          </div>
-        </div>
+        )}
         
         <DialogFooter>
           <Button
             onClick={handleSale}
-            disabled={isLoading || parseInt(quantity) <= 0 || parseInt(quantity) > product.quantity || branches.length === 0 || parseFloat(salePrice) <= 0}
+            disabled={isLoading || isLoadingData || noBranches || parseInt(quantity) <= 0 || parseInt(quantity) > product.quantity || parseFloat(salePrice) <= 0}
             className="w-full sm:w-auto"
           >
             {isLoading ? 'Processing...' : 'Complete Sale'}
