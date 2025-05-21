@@ -65,7 +65,6 @@ const Products = () => {
         .from('products')
         .select('*')
         .eq('business_id', currentBusiness.id)
-        .eq('sold', false)
         .order('name');
       
       if (error) throw error;
@@ -73,7 +72,7 @@ const Products = () => {
       // Transform products to include quantity
       const productsWithQuantity = (data || []).map(product => ({
         ...product,
-        quantity: product.quantity || 1
+        quantity: product.quantity || 0
       }));
       
       setProducts(productsWithQuantity);
@@ -323,19 +322,20 @@ const Products = () => {
                         <TableHead>Price</TableHead>
                         <TableHead className="hidden md:table-cell">Cost</TableHead>
                         <TableHead>Qty</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {products.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8">
+                          <TableCell colSpan={7} className="text-center py-8">
                             No products found. Create your first product by clicking "Add Product".
                           </TableCell>
                         </TableRow>
                       ) : (
                         products.map((product) => (
-                          <TableRow key={product.id}>
+                          <TableRow key={product.id} className={product.sold ? "bg-muted/30" : ""}>
                             <TableCell className="font-medium">
                               <div>
                                 {product.name}
@@ -346,17 +346,34 @@ const Products = () => {
                             <TableCell>{formatCurrency(product.price)}</TableCell>
                             <TableCell className="hidden md:table-cell">{formatCurrency(product.cost_price)}</TableCell>
                             <TableCell>{product.quantity}</TableCell>
+                            <TableCell>
+                              {product.sold ? (
+                                <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
+                                  Sold
+                                </Badge>
+                              ) : product.quantity === 0 ? (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
+                                  Out of Stock
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                                  Available
+                                </Badge>
+                              )}
+                            </TableCell>
                             <TableCell className="text-right">
                               <div className="flex flex-col sm:flex-row justify-end gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size={isMobile ? "sm" : "default"}
-                                  onClick={() => handleOpenSaleDialog(product)}
-                                  className="text-green-600 border-green-600 hover:bg-green-50"
-                                >
-                                  <ShoppingCart className="h-4 w-4 mr-1" />
-                                  {isMobile ? "" : "Sell"}
-                                </Button>
+                                {!product.sold && product.quantity > 0 && (
+                                  <Button 
+                                    variant="outline" 
+                                    size={isMobile ? "sm" : "default"}
+                                    onClick={() => handleOpenSaleDialog(product)}
+                                    className="text-green-600 border-green-600 hover:bg-green-50"
+                                  >
+                                    <ShoppingCart className="h-4 w-4 mr-1" />
+                                    {isMobile ? "" : "Sell"}
+                                  </Button>
+                                )}
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 

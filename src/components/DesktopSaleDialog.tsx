@@ -52,14 +52,16 @@ export function DesktopSaleDialog({
   const [branches, setBranches] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [branchId, setBranchId] = useState('');
-  const [customerId, setCustomerId] = useState('no-customer'); // Changed default value
+  const [customerId, setCustomerId] = useState('no-customer');
   const [isLoading, setIsLoading] = useState(false);
+  const [salePrice, setSalePrice] = useState('');
 
   // Fetch branches and customers when the dialog opens
   useEffect(() => {
     if (isOpen && currentBusiness && product) {
       fetchBranchesAndCustomers();
       setQuantity('1');
+      setSalePrice(product.price.toString());
     }
   }, [isOpen, product, currentBusiness]);
 
@@ -78,6 +80,12 @@ export function DesktopSaleDialog({
       
       if (branchesData && branchesData.length > 0) {
         setBranchId(branchesData[0].id);
+      } else {
+        toast({
+          title: "No branches found",
+          description: "Please create at least one branch before selling products.",
+          variant: "destructive"
+        });
       }
       
       // Fetch customers
@@ -103,18 +111,28 @@ export function DesktopSaleDialog({
       toast({
         variant: "destructive",
         title: "Unable to process sale",
-        description: "Missing required information to complete the sale.",
+        description: !branchId ? "Please create a branch first." : "Missing required information to complete the sale.",
       });
       return;
     }
     
     const saleQuantity = parseInt(quantity);
+    const finalSalePrice = parseFloat(salePrice);
     
     if (isNaN(saleQuantity) || saleQuantity <= 0) {
       toast({
         variant: "destructive",
         title: "Invalid quantity",
         description: "Please enter a valid quantity.",
+      });
+      return;
+    }
+    
+    if (isNaN(finalSalePrice) || finalSalePrice <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Invalid price",
+        description: "Please enter a valid selling price.",
       });
       return;
     }
@@ -132,7 +150,7 @@ export function DesktopSaleDialog({
     
     try {
       const now = new Date().toISOString();
-      const totalPrice = product.price * saleQuantity;
+      const totalPrice = finalSalePrice * saleQuantity;
       
       // Create a sale record
       const { error: saleError } = await supabase
@@ -140,7 +158,7 @@ export function DesktopSaleDialog({
         .insert([{
           product_id: product.id,
           branch_id: branchId,
-          customer_id: customerId === 'no-customer' ? null : customerId, // Handle null customer
+          customer_id: customerId === 'no-customer' ? null : customerId,
           quantity: saleQuantity,
           total: totalPrice,
           business_id: currentBusiness.id,
@@ -195,8 +213,8 @@ export function DesktopSaleDialog({
 
   if (!product) return null;
 
-  // Calculate the total price based on quantity
-  const totalPrice = product ? product.price * parseInt(quantity || '0') : 0;
+  // Calculate the total price based on quantity and updated sale price
+  const totalPrice = parseFloat(salePrice || '0') * parseInt(quantity || '0');
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -226,9 +244,21 @@ export function DesktopSaleDialog({
               <div>{product.quantity} units</div>
             </div>
             <div>
-              <Label className="text-sm font-medium">Unit Price</Label>
+              <Label className="text-sm font-medium">Suggested Price</Label>
               <div>{formatCurrency(product.price)}</div>
             </div>
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="salePrice">Selling Price (UGX)</Label>
+            <Input 
+              id="salePrice" 
+              type="number"
+              min="0"
+              step="100"
+              value={salePrice}
+              onChange={(e) => setSalePrice(e.target.value)}
+            />
           </div>
           
           <div className="grid gap-2">
@@ -250,11 +280,15 @@ export function DesktopSaleDialog({
                 <SelectValue placeholder="Select branch" />
               </SelectTrigger>
               <SelectContent>
-                {branches.map((branch) => (
-                  <SelectItem key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </SelectItem>
-                ))}
+                {branches.length === 0 ? (
+                  <SelectItem value="" disabled>No branches available - create a branch first</SelectItem>
+                ) : (
+                  branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -285,7 +319,7 @@ export function DesktopSaleDialog({
         <DialogFooter>
           <Button
             onClick={handleSale}
-            disabled={isLoading || parseInt(quantity) <= 0 || parseInt(quantity) > product.quantity}
+            disabled={isLoading || parseInt(quantity) <= 0 || parseInt(quantity) > product.quantity || branches.length === 0 || parseFloat(salePrice) <= 0}
             className="w-full sm:w-auto"
           >
             {isLoading ? 'Processing...' : 'Complete Sale'}

@@ -20,8 +20,14 @@ interface TopProductsTableProps {
 const TopProductsTable = ({ products }: TopProductsTableProps) => {
   const isMobile = useIsMobile();
   
-  // If there are no products with sales (totalSold > 0), don't render the card at all
-  if (!products || products.length === 0 || !products.some(p => p.totalSold > 0)) {
+  // If there are no products or no sales data, don't render the card at all
+  if (!products || products.length === 0) {
+    return null;
+  }
+  
+  // Filter to only include products with sales data
+  const productsWithSales = products.filter(p => p.totalSold > 0);
+  if (productsWithSales.length === 0) {
     return null;
   }
   
@@ -55,11 +61,9 @@ const TopProductsTable = ({ products }: TopProductsTableProps) => {
       <CardContent className={isMobile ? "p-3" : "px-0 overflow-x-auto"}>
         {isMobile ? (
           <div>
-            {products
-              .filter(product => product.totalSold > 0)
-              .map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+            {productsWithSales.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
         ) : (
           <Table>
@@ -72,18 +76,16 @@ const TopProductsTable = ({ products }: TopProductsTableProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products
-                .filter(product => product.totalSold > 0)
-                .map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.brand}</TableCell>
-                    <TableCell className="text-right">{product.totalSold}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(product.totalRevenue)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+              {productsWithSales.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>{product.brand}</TableCell>
+                  <TableCell className="text-right">{product.totalSold}</TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatCurrency(product.totalRevenue)}
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         )}
