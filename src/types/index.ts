@@ -28,6 +28,7 @@ export interface Product {
   quantity: number;
   sold?: boolean;
   sale_date?: string;
+  available_quantity?: number; 
 }
 
 export interface BranchProduct {

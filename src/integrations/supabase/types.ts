@@ -159,6 +159,7 @@ export type Database = {
           quantity: number
           sale_date: string | null
           sold: boolean | null
+          available_quantity: number | null
         }
         Insert: {
           brand: string

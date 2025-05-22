@@ -204,7 +204,7 @@ const Branches = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col md:flex-row">
       <Sidebar />
       
       <div className="flex-1 flex flex-col">

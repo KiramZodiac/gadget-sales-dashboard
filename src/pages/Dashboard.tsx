@@ -262,10 +262,10 @@ const Dashboard = () => {
                   salesByBranch.length > 0;
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen  flex">
       <Sidebar />
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col w-full">
         <DashboardHeader 
           businessName={currentBusiness.name}
           userBusinesses={businesses}
@@ -286,8 +286,8 @@ const Dashboard = () => {
             </div>
           ) : (
             <>
-              <div className={cn("grid gap-4 mb-6", 
-                isMobile ? "grid-cols-2" : "md:grid-cols-2 lg:grid-cols-4")}>
+              <div className={cn("grid gap-4 mb-6 ", 
+                isMobile ? "grid-cols-2 " : "md:grid-cols-2 lg:grid-cols-4")}>
                 <StatCard 
                   title="Total Sales Today" 
                   value={dashboardStats.todaySales}

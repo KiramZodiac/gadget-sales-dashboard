@@ -30,7 +30,7 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({ 
   businessName,
-  userBusinesses = [],
+  
   onBusinessChange
 }: DashboardHeaderProps) => {
   const { toast } = useToast();
@@ -62,8 +62,8 @@ const DashboardHeader = ({
   };
 
   return (
-    <header className="border-b bg-card">
-      <div className="container flex items-center justify-between py-4">
+    <header className="border-b bg-card  shadow-sm">
+      <div className="container flex items-center justify-between py-4 w-screen-sm ">
         <div className="flex items-center gap-4">
           <h1 className="font-semibold text-lg">{businessName}</h1>
           

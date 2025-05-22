@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import DashboardHeader from '@/components/DashboardHeader';
@@ -58,7 +57,7 @@ const Products = () => {
 
   const fetchProducts = async () => {
     if (!currentBusiness) return;
-    
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -66,15 +65,17 @@ const Products = () => {
         .select('*')
         .eq('business_id', currentBusiness.id)
         .order('name');
-      
+
       if (error) throw error;
-      
-      // Transform products to include quantity
+
       const productsWithQuantity = (data || []).map(product => ({
+        
         ...product,
-        quantity: product.quantity || 0
+        quantity: product.quantity || 0,
+        available_quantity: product.available_quantity|| 0,
+
       }));
-      
+
       setProducts(productsWithQuantity);
     } catch (error: any) {
       console.error('Error fetching products:', error);
@@ -132,14 +133,14 @@ const Products = () => {
         .from('products')
         .delete()
         .eq('id', id);
-      
+
       if (error) throw error;
-      
+
       toast({
         title: "Product deleted",
         description: "Product has been successfully deleted.",
       });
-      
+
       fetchProducts();
     } catch (error: any) {
       console.error('Error deleting product:', error);
@@ -153,9 +154,9 @@ const Products = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!currentBusiness) return;
-    
+
     try {
       const productData = {
         name: formData.name,
@@ -163,40 +164,42 @@ const Products = () => {
         price: parseFloat(formData.price),
         cost_price: parseFloat(formData.cost_price),
         quantity: parseInt(formData.quantity),
+        available_quantity: isEditing ? undefined : parseInt(formData.quantity), // Only set on creation
         business_id: currentBusiness.id,
       };
-      
+
       let error;
-      
+
       if (isEditing) {
         const { error: updateError } = await supabase
           .from('products')
           .update(productData)
           .eq('id', formData.id);
-        
+
         error = updateError;
       } else {
         const { error: insertError } = await supabase
           .from('products')
           .insert([productData]);
-        
+
         error = insertError;
       }
-      
+
       if (error) throw error;
-      
+
       toast({
         title: isEditing ? "Product updated" : "Product added",
-        description: isEditing ? 
-          "Product has been successfully updated." : 
-          "New product has been successfully added.",
+        description: isEditing
+          ? "Product has been successfully updated."
+          : "New product has been successfully added.",
       });
-      
+
       resetForm();
       setIsDialogOpen(false);
       fetchProducts();
     } catch (error: any) {
       console.error('Error saving product:', error);
+
       toast({
         variant: "destructive",
         title: "Failed to save product",
@@ -204,6 +207,33 @@ const Products = () => {
       });
     }
   };
+
+  // const handleSale = async (productId: string, soldQuantity: number) => {
+  //   try {
+  //     const { error } = await supabase
+  //       .from('products')
+  //       .update({
+  //         available_quantity: supabase.raw('available_quantity - ?', [soldQuantity]),
+  //       })
+  //       .eq('id', productId);
+
+  //     if (error) throw error;
+
+  //     toast({
+  //       title: "Sale completed",
+  //       description: "Product availability has been updated.",
+  //     });
+
+  //     fetchProducts();
+  //   } catch (error: any) {
+  //     console.error('Error processing sale:', error);
+  //     toast({
+  //       variant: "destructive",
+  //       title: "Failed to process sale",
+  //       description: error.message || "An error occurred while processing the sale.",
+  //     });
+  //   }
+  // };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-UG', {
@@ -217,14 +247,14 @@ const Products = () => {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col">
-        <DashboardHeader 
+        <DashboardHeader
           businessName={currentBusiness?.name || ''}
           userBusinesses={[]}
-          onBusinessChange={() => {}}
+          onBusinessChange={() => { }}
         />
-        
+
         <main className="flex-1 p-4 md:p-6 bg-muted/20 pb-20 md:pb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h1 className="text-2xl md:text-3xl font-bold">Products</h1>
@@ -248,54 +278,54 @@ const Products = () => {
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <Label htmlFor="name">Product Name</Label>
-                      <Input 
-                        id="name" 
+                      <Input
+                        id="name"
                         value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         required
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="brand">Brand</Label>
-                      <Input 
-                        id="brand" 
+                      <Input
+                        id="brand"
                         value={formData.brand}
-                        onChange={(e) => setFormData({...formData, brand: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                         required
                       />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="price">Selling Price (UGX)</Label>
-                        <Input 
-                          id="price" 
+                        <Input
+                          id="price"
                           type="number"
-                          step="100" 
+                          step="100"
                           value={formData.price}
-                          onChange={(e) => setFormData({...formData, price: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                           required
                         />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="cost_price">Cost Price (UGX)</Label>
-                        <Input 
-                          id="cost_price" 
+                        <Input
+                          id="cost_price"
                           type="number"
-                          step="100" 
+                          step="100"
                           value={formData.cost_price}
-                          onChange={(e) => setFormData({...formData, cost_price: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
                           required
                         />
                       </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="quantity">Quantity</Label>
-                      <Input 
-                        id="quantity" 
+                      <Input
+                        id="quantity"
                         type="number"
-                        min="1" 
+                        min="1"
                         value={formData.quantity}
-                        onChange={(e) => setFormData({...formData, quantity: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                         required
                       />
                     </div>
@@ -307,7 +337,7 @@ const Products = () => {
               </DialogContent>
             </Dialog>
           </div>
-          
+
           {isLoading ? (
             <div className="flex justify-center py-8">Loading products...</div>
           ) : (
@@ -345,11 +375,13 @@ const Products = () => {
                             <TableCell className="hidden md:table-cell">{product.brand}</TableCell>
                             <TableCell>{formatCurrency(product.price)}</TableCell>
                             <TableCell className="hidden md:table-cell">{formatCurrency(product.cost_price)}</TableCell>
-                            <TableCell>{product.quantity}</TableCell>
+
+                            <TableCell>{product.available_quantity} </TableCell>
+
                             <TableCell>
                               {product.sold ? (
                                 <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
-                                  Sold
+                                  Sold Out
                                 </Badge>
                               ) : product.quantity === 0 ? (
                                 <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">
@@ -357,15 +389,16 @@ const Products = () => {
                                 </Badge>
                               ) : (
                                 <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-                                  Available
+                                  {product.quantity} in Stock
                                 </Badge>
+
                               )}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex flex-col sm:flex-row justify-end gap-2">
                                 {!product.sold && product.quantity > 0 && (
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     size={isMobile ? "sm" : "default"}
                                     onClick={() => handleOpenSaleDialog(product)}
                                     className="text-green-600 border-green-600 hover:bg-green-50"
@@ -374,16 +407,16 @@ const Products = () => {
                                     {isMobile ? "" : "Sell"}
                                   </Button>
                                 )}
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => handleEditProduct(product)}
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => handleDeleteProduct(product.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -403,7 +436,7 @@ const Products = () => {
       </div>
 
       {isMobile ? (
-        <MobileSaleDialog 
+        <MobileSaleDialog
           isOpen={isSaleDialogOpen}
           setIsOpen={setIsSaleDialogOpen}
           product={selectedProduct}
@@ -411,7 +444,7 @@ const Products = () => {
           formatCurrency={formatCurrency}
         />
       ) : (
-        <DesktopSaleDialog 
+        <DesktopSaleDialog
           isOpen={isSaleDialogOpen}
           setIsOpen={setIsSaleDialogOpen}
           product={selectedProduct}
