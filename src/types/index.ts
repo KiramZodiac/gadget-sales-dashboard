@@ -40,6 +40,9 @@ export interface BranchProduct {
 }
 
 export interface Customer {
+  address: string;
+  notes: string;
+  is_default: any;
   id: string;
   name: string;
   phone: string;

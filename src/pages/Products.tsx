@@ -31,6 +31,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Product } from '@/types';
 import { MobileSaleDialog } from '@/components/MobileSaleDialog';
 import { DesktopSaleDialog } from '@/components/DesktopSaleDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface ProductWithQuantity extends Product {
   quantity: number;
@@ -126,7 +127,11 @@ const Products = () => {
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+
+
+
+
+
 
     try {
       const { error } = await supabase
@@ -164,8 +169,18 @@ const Products = () => {
         price: parseFloat(formData.price),
         cost_price: parseFloat(formData.cost_price),
         quantity: parseInt(formData.quantity),
-        available_quantity: isEditing ? undefined : parseInt(formData.quantity), // Only set on creation
         business_id: currentBusiness.id,
+        available_quantity: isEditing 
+        ? Math.max(
+            products.find(p => p.id === formData.id)?.available_quantity || 0,
+            parseInt(formData.quantity)
+          )
+        : parseInt(formData.quantity),
+        sold: false,
+        
+      
+
+
       };
 
       let error;
@@ -208,32 +223,7 @@ const Products = () => {
     }
   };
 
-  // const handleSale = async (productId: string, soldQuantity: number) => {
-  //   try {
-  //     const { error } = await supabase
-  //       .from('products')
-  //       .update({
-  //         available_quantity: supabase.raw('available_quantity - ?', [soldQuantity]),
-  //       })
-  //       .eq('id', productId);
-
-  //     if (error) throw error;
-
-  //     toast({
-  //       title: "Sale completed",
-  //       description: "Product availability has been updated.",
-  //     });
-
-  //     fetchProducts();
-  //   } catch (error: any) {
-  //     console.error('Error processing sale:', error);
-  //     toast({
-  //       variant: "destructive",
-  //       title: "Failed to process sale",
-  //       description: error.message || "An error occurred while processing the sale.",
-  //     });
-  //   }
-  // };
+ 
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-UG', {
@@ -396,7 +386,7 @@ const Products = () => {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex flex-col sm:flex-row justify-end gap-2">
-                                {!product.sold && product.quantity > 0 && (
+                                {!product.sold && product.available_quantity > 0 && (
                                   <Button
                                     variant="outline"
                                     size={isMobile ? "sm" : "default"}
@@ -414,13 +404,34 @@ const Products = () => {
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeleteProduct(product.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <AlertDialog>
+      <AlertDialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-red-600 border-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete your
+            account and remove your data from our servers.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          
+          <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>Delete</AlertDialogAction>
+
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+
                               </div>
                             </TableCell>
                           </TableRow>

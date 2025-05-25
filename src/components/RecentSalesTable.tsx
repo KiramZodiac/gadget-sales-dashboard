@@ -15,6 +15,8 @@ import { Badge } from '@/components/ui/badge';
 
 interface RecentSalesTableProps {
   sales: Sale[];
+  title: string;
+  
 }
 
 const RecentSalesTable = ({ sales }: RecentSalesTableProps) => {

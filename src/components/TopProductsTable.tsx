@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 
 interface TopProductsTableProps {
   products: TopProduct[];
+  title:string
 }
 
 const TopProductsTable = ({ products }: TopProductsTableProps) => {

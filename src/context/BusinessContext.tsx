@@ -16,6 +16,7 @@ interface BusinessContextProps {
   setCurrentBusiness: (business: Business) => void;
   refreshBusinesses: () => Promise<void>;
   createBusiness: (name: string) => Promise<Business | null>;
+  deleteBusinessAndData: (bizId: string) => Promise<void>;
 }
 
 const BusinessContext = createContext<BusinessContextProps | undefined>(undefined);
@@ -99,6 +100,40 @@ export const BusinessProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
+  const deleteBusinessAndData = async (bizId: string): Promise<void> => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "You must be logged in to delete a business.",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('businesses')
+        .delete()
+        .eq('id', bizId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Business deleted",
+        description: "The business and its data have been successfully deleted.",
+      });
+
+      await refreshBusinesses();
+    } catch (error: any) {
+      console.error('Error deleting business:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to delete business",
+        description: error.message || "An error occurred while deleting the business.",
+      });
+    }
+  };
+
   useEffect(() => {
     refreshBusinesses();
   }, [user]);
@@ -110,7 +145,8 @@ export const BusinessProvider = ({ children }: { children: React.ReactNode }) =>
       isLoading,
       setCurrentBusiness,
       refreshBusinesses,
-      createBusiness
+      createBusiness,
+      deleteBusinessAndData
     }}>
       {children}
     </BusinessContext.Provider>

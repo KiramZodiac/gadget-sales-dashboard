@@ -14,6 +14,7 @@ import Customers from "./pages/Customers";
 import Sales from "./pages/Sales";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import LowStock from "./pages/LowStock";
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -78,6 +79,12 @@ const AppRoutes = () => {
         <Route path="/settings" element={
           <ProtectedRoute>
             <Settings />
+          </ProtectedRoute>
+        } />
+
+<Route path="/lowstock" element={
+          <ProtectedRoute>
+            <LowStock/>
           </ProtectedRoute>
         } />
         
