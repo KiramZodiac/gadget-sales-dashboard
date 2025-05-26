@@ -18,6 +18,7 @@ export interface Branch {
 }
 
 export interface Product {
+ 
   id: string;
   name: string;
   brand: string;
@@ -48,6 +49,7 @@ export interface Customer {
   phone: string;
   business_id: string;
   email?: string;
+  type?: string; 
 }
 
 export interface Sale {

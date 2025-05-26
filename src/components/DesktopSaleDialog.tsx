@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +21,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Plus } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -58,6 +57,13 @@ export function DesktopSaleDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [salePrice, setSalePrice] = useState('');
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    type:'walk in'
+  });
 
   // Fetch branches and customers when the dialog opens
   useEffect(() => {
@@ -66,6 +72,7 @@ export function DesktopSaleDialog({
       fetchBranchesAndCustomers();
       setQuantity('1');
       setSalePrice(product.price.toString());
+      setShowAddCustomer(false);
     }
   }, [isOpen, product, currentBusiness]);
 
@@ -89,13 +96,7 @@ export function DesktopSaleDialog({
       }
       
       // Fetch customers
-      const { data: customersData, error: customersError } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('business_id', currentBusiness.id);
-      
-      if (customersError) throw customersError;
-      setCustomers(customersData || []);
+      await fetchCustomers();
     } catch (error: any) {
       console.error('Error fetching data:', error);
       toast({
@@ -105,6 +106,75 @@ export function DesktopSaleDialog({
       });
     } finally {
       setIsLoadingData(false);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    if (!currentBusiness) return;
+    
+    const { data: customersData, error: customersError } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('business_id', currentBusiness.id);
+    
+    if (customersError) throw customersError;
+    setCustomers(customersData || []);
+  };
+
+  const handleAddCustomer = async () => {
+    if (!currentBusiness) return;
+    
+    if (!newCustomer.name.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Name is required",
+        description: "Please enter a customer name.",
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .insert([{
+          name: newCustomer.name.trim(),
+          email: newCustomer.email.trim(),
+          phone: newCustomer.phone.trim(),
+          business_id: currentBusiness.id,
+          type:newCustomer.type
+        }])
+        .select();
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Update customers list and select the new customer
+        await fetchCustomers();
+        setCustomerId(data[0].id);
+        setShowAddCustomer(false);
+        setNewCustomer({
+          name: '',
+          email: '',
+          phone: '',
+          type:"walk in"
+        });
+        
+        toast({
+          title: "Customer added",
+          description: "New customer created successfully.",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error adding customer:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to add customer",
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -312,19 +382,92 @@ export function DesktopSaleDialog({
             
             <div className="grid gap-2">
               <Label htmlFor="customer">Customer (Optional)</Label>
-              <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger id="customer">
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no-customer">Walk-in Customer</SelectItem>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {showAddCustomer ? (
+                <div className="space-y-3">
+                  <Input
+                    placeholder="Customer Name *"
+                    value={newCustomer.name}
+                    onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                  />
+                  <Input
+                    placeholder="Email"
+                    type="email"
+                    value={newCustomer.email}
+                    onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
+                  />
+                  <Input
+                    placeholder="Phone"
+                    type="tel"
+                    value={newCustomer.phone}
+                    onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                  />
+
+               <div className="grid gap-2">
+              <Label>Customer Type</Label>
+                 <Select 
+                  value={newCustomer.type}
+                     onValueChange={(value) => setNewCustomer({...newCustomer, type: value})}
+                                    >
+                          <SelectTrigger>
+                         <SelectValue placeholder="Select type" />
+                       </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="walk-in">Walk-in</SelectItem>
+          <SelectItem value="delivery">Delivery</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
+
+
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleAddCustomer}
+                      disabled={isLoading || !newCustomer.name.trim()}
+                      size="sm"
+                      className="flex-1"
+                    >
+                      {isLoading ? 'Saving...' : 'Save Customer'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAddCustomer(false)}
+                      size="sm"
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Select 
+                    value={customerId} 
+                    onValueChange={setCustomerId}
+                    
+                  >
+                    <SelectTrigger id="customer">
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-customer">Walk-in Customer</SelectItem>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name} ({customer.type === 'walk-in' ? 'Walk-in' : 'Delivery'})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowAddCustomer(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
             
             <div className="pt-2 border-t mt-2">
@@ -337,7 +480,15 @@ export function DesktopSaleDialog({
         <DialogFooter>
           <Button
             onClick={handleSale}
-            disabled={isLoading || isLoadingData || noBranches || parseInt(quantity) <= 0 || parseInt(quantity) > product.quantity || parseFloat(salePrice) <= 0}
+            disabled={
+              isLoading || 
+              isLoadingData || 
+              noBranches || 
+              parseInt(quantity) <= 0 || 
+              parseInt(quantity) > product.quantity || 
+              parseFloat(salePrice) <= 0 ||
+              showAddCustomer
+            }
             className="w-full sm:w-auto"
           >
             {isLoading ? 'Processing...' : 'Complete Sale'}

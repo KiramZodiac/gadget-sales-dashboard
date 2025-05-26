@@ -25,6 +25,7 @@ interface DashboardHeaderProps {
   businessName: string;
   userBusinesses?: { id: string; name: string }[];
   onBusinessChange?: (businessId: string) => void;
+  onSidebarToggle?: () => void;
 }
 
 const DashboardHeader = ({ 

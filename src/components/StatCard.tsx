@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from '@/lib/utils';
@@ -44,33 +43,26 @@ const StatCard = ({
   const isPositive = change && change > 0;
 
   return (
-    <Card className={cn("dashboard-card", className)}>
-      <CardContent className={cn("p-4 pt-4", isMobile && "p-3 pt-3")}>
-        <div className="flex items-start justify-between">
-          <div className="max-w-[75%]">
-            <p className={cn("text-sm font-medium text-muted-foreground", isMobile && "text-xs")}>{title}</p>
-            <p className={cn("text-2xl font-bold", isMobile && "text-base")}>{formattedValue}</p>
-            
-            {showChange && (
-              <div className={cn("flex items-center text-xs", 
-                isPositive ? "text-green-600" : "text-red-600")}>
-                {isPositive ? 
-                  <TrendingUp className="h-3 w-3 mr-1" /> : 
-                  <TrendingDown className="h-3 w-3 mr-1" />
-                }
-                {Math.abs(change)}%
-              </div>
-            )}
-            
+    <Card className={cn("dashboard-card w-full", className)}>
+      <CardContent className={cn("p-4 pt-4 min-h-[96px]", isMobile && "p-3 pt-3 min-h-[80px]")}>
+        <div className="flex items-start justify-between h-full">
+          <div className="max-w-[75%] flex flex-col justify-between">
+            <p className={cn("text-sm font-medium text-muted-foreground truncate", isMobile && "text-xs")}>{title}</p>
+            <p className={cn("text-2xl font-bold ", isMobile && "text-base")}>{formattedValue}</p>
+            <div className="min-h-[16px]">
+              {showChange && (
+                <div className={cn("flex items-center text-xs", isPositive ? "text-green-600" : "text-red-600")}>
+                  {isPositive ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                  {Math.abs(change)}%
+                </div>
+              )}
+            </div>
             {description && (
-              <p className="text-xs text-muted-foreground mt-1">{description}</p>
+              <p className="text-xs text-muted-foreground mt-1 truncate">{description}</p>
             )}
           </div>
-          
           {icon && (
-            <div className="rounded-md bg-primary/10 p-2 flex-shrink-0">
-              {icon}
-            </div>
+            <div className="rounded-md bg-primary/10 p-2 flex-shrink-0">{icon}</div>
           )}
         </div>
       </CardContent>
