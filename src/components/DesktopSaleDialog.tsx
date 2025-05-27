@@ -417,11 +417,7 @@ export function DesktopSaleDialog({
         </SelectContent>
       </Select>
     </div>
-
-
-
-
-                  <div className="flex gap-2">
+                 <div className="flex gap-2">
                     <Button
                       onClick={handleAddCustomer}
                       disabled={isLoading || !newCustomer.name.trim()}

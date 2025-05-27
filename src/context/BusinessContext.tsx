@@ -17,6 +17,10 @@ interface BusinessContextProps {
   refreshBusinesses: () => Promise<void>;
   createBusiness: (name: string) => Promise<Business | null>;
   deleteBusinessAndData: (bizId: string) => Promise<void>;
+updateBusiness: (id: string, name: string) => Promise<void>;
+
+
+
 }
 
 const BusinessContext = createContext<BusinessContextProps | undefined>(undefined);
@@ -100,6 +104,42 @@ export const BusinessProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
+  const updateBusiness = async (id: string, name: string) => {
+    // Updated implementation to handle both id and name
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "You must be logged in to update a business.",
+      });
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('businesses')
+        .update({ name })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Business updated",
+        description: `The business has been successfully updated to ${name}.`,
+      });
+
+      await refreshBusinesses();
+    }
+    catch (error: any) {
+      console.error('Error updating business:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to update business",
+        description: error.message || "An error occurred while updating the business.",
+      });
+    }
+  };
+
+
   const deleteBusinessAndData = async (bizId: string): Promise<void> => {
     if (!user) {
       toast({
@@ -146,7 +186,8 @@ export const BusinessProvider = ({ children }: { children: React.ReactNode }) =>
       setCurrentBusiness,
       refreshBusinesses,
       createBusiness,
-      deleteBusinessAndData
+      deleteBusinessAndData,
+      updateBusiness
     }}>
       {children}
     </BusinessContext.Provider>
