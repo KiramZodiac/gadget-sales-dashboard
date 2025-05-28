@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface AuthContextProps {
   session: Session | null;
@@ -22,9 +22,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const hasShownLoginToast = useRef(false);
 
   useEffect(() => {
-    // Fetch initial session
     const fetchSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -47,24 +48,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     fetchSession();
 
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state change:', event, session);
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
-        if (event === 'SIGNED_IN' && session) {
+        if (event === 'SIGNED_IN' && session && !hasShownLoginToast.current) {
+          hasShownLoginToast.current = true;
           toast({
             title: 'Welcome!',
             description: 'You have successfully signed in.',
           });
-          navigate('/dashboard');
+          if (location.pathname !== '/dashboard') {
+            navigate('/dashboard');
+          }
+        } else if (event === 'SIGNED_OUT') {
+          hasShownLoginToast.current = false;
         }
       }
     );
 
-    // Timeout for slow session loading
     const timeout = setTimeout(() => {
       if (isLoading) {
         console.warn('Authentication timeout triggered');
@@ -81,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, [toast, navigate]);
+  }, [toast, navigate, location]);
 
   const signInWithGoogle = async () => {
     try {
