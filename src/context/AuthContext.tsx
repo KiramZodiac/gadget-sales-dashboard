@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 interface AuthContextProps {
   session: Session | null;
   user: User | null;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   isLoading: boolean;
 }
@@ -20,7 +20,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        setIsLoading(false);
+        toast({
+          variant: 'destructive',
+          title: 'Authentication Timeout',
+          description: 'Failed to load authentication state. Please refresh.',
+        });
+      }
+    }, 5000);
+//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
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -29,40 +39,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, [toast]);
 
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signOut = async () => {
+  const signInWithGoogle = async () => {
     try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Signed out",
-        description: "You have been successfully signed out.",
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+          scopes: 'email profile',
+        },
       });
-    } catch (error) {
-      console.error('Error signing out:', error);
+      if (error) throw error;
       toast({
-        variant: "destructive",
-        title: "Sign out failed",
-        description: "An error occurred while signing out. Please try again.",
+        title: 'Redirecting to Google',
+        description: 'You are being redirected to sign in with Google.',
+      });
+    } catch (error: any) {
+      console.error('Error signing in with Google:', error.message);
+      toast({
+        variant: 'destructive',
+        title: 'Sign in failed',
+        description: error.message || 'An error occurred while signing in with Google.',
       });
     }
   };
 
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast({
+        title: 'Signed out',
+        description: 'You have been successfully signed out.',
+      });
+    } catch (error: any) {
+      console.error('Error signing out:', error.message);
+      toast({
+        variant: 'destructive',
+        title: 'Sign out failed',
+        description: error.message || 'An error occurred while signing out.',
+      });
+    }
+  };
+
+  const value = React.useMemo(
+    () => ({ session, user, signInWithGoogle, signOut, isLoading }),
+    [session, user, isLoading]
+  );
+
   return (
-    <AuthContext.Provider value={{
-      session,
-      user,
-      signOut,
-      isLoading
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
