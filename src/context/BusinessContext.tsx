@@ -18,9 +18,6 @@ interface BusinessContextProps {
   createBusiness: (name: string) => Promise<Business | null>;
   deleteBusinessAndData: (bizId: string) => Promise<void>;
 updateBusiness: (id: string, name: string) => Promise<void>;
-
-
-
 }
 
 const BusinessContext = createContext<BusinessContextProps | undefined>(undefined);
@@ -105,7 +102,7 @@ export const BusinessProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   const updateBusiness = async (id: string, name: string) => {
-    // Updated implementation to handle both id and name
+
     if (!user) {
       toast({
         variant: "destructive",

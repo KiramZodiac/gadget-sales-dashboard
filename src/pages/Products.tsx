@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
 import {
   Table,
   TableBody,
@@ -16,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
 import {
   Dialog,
   DialogContent,
@@ -31,6 +33,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Product } from '@/types';
 import { MobileSaleDialog } from '@/components/MobileSaleDialog';
 import { DesktopSaleDialog } from '@/components/DesktopSaleDialog';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,12 +57,14 @@ interface ProductWithQuantity extends Product {
   available_quantity?: number;
 }
 
+
 const Products = () => {
   const { toast } = useToast();
   const { currentBusiness } = useBusiness();
   const [products, setProducts] = useState<ProductWithQuantity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaleDialogOpen, setIsSaleDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductWithQuantity | null>(null);
   const [formData, setFormData] = useState({
@@ -166,75 +171,130 @@ const Products = () => {
     }
   };
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!currentBusiness) return;
-
+    if (!currentBusiness || isSubmitting) return;
+    setIsSubmitting(true);
+  
+    if (!formData.name || !formData.brand) {
+      toast({
+        variant: "destructive",
+        title: "Invalid input",
+        description: "Product name and brand are required.",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+  
+    const price = parseFloat(formData.price);
+    const costPrice = parseFloat(formData.cost_price);
+    const quantity = parseInt(formData.quantity);
+  
+    if (isNaN(price) || isNaN(costPrice) || isNaN(quantity) || price <= 0 || costPrice <= 0 || quantity < 0) {
+      toast({
+        variant: "destructive",
+        title: "Invalid input",
+        description: "Price and cost must be positive numbers, and quantity cannot be negative.",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+  
+    const existingProduct = isEditing ? products.find(p => p.id === formData.id) : null;
+    if (isEditing && !existingProduct) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Product not found for editing.",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+  
+    const productData = {
+      name: formData.name,
+      brand: formData.brand,
+      price,
+      cost_price: costPrice,
+      quantity,
+      business_id: currentBusiness.id,
+      available_quantity: isEditing
+        ? Math.max(existingProduct?.available_quantity || 0, quantity)
+        : quantity,
+      sold: false,
+    };
+  
+    const previousProducts = products;
+    if (isEditing) {
+      setProducts(products.map(p => (p.id === formData.id ? { ...p, ...productData } : p)));
+    } else {
+      setProducts([...products, { ...productData, id: 'temp-' + Date.now() }]);
+    }
+  
     try {
-      const productData = {
-        name: formData.name,
-        brand: formData.brand,
-        price: parseFloat(formData.price),
-        cost_price: parseFloat(formData.cost_price),
-        quantity: parseInt(formData.quantity),
-        business_id: currentBusiness.id,
-        available_quantity: isEditing
-          ? Math.max(
-              products.find(p => p.id === formData.id)?.available_quantity || 0,
-              parseInt(formData.quantity)
-            )
-          : parseInt(formData.quantity),
-        sold: false,
-      };
-
       let error;
-
       if (isEditing) {
         const { error: updateError } = await supabase
           .from('products')
           .update(productData)
           .eq('id', formData.id);
-
         error = updateError;
       } else {
         const { error: insertError } = await supabase
           .from('products')
           .insert([productData]);
-
         error = insertError;
       }
-
-      if (error) throw error;
-
+  
+      if (error) {
+        const errorMessage =
+          error.code === '23505'
+            ? 'A product with this name already exists.'
+            : error.message || 'An error occurred while saving the product.';
+        toast({
+          variant: "destructive",
+          title: "Failed to save product",
+          description: errorMessage,
+        });
+        setProducts(previousProducts);
+        throw error;
+      }
+  
       toast({
         title: isEditing ? "Product updated" : "Product added",
         description: isEditing
           ? "Product has been successfully updated."
           : "New product has been successfully added.",
       });
-
+  
       resetForm();
       setIsDialogOpen(false);
       fetchProducts();
     } catch (error: any) {
       console.error('Error saving product:', error);
-
+      setProducts(previousProducts);
       toast({
         variant: "destructive",
         title: "Failed to save product",
         description: error.message || "An error occurred while saving the product.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  
+   const formatter = new Intl.NumberFormat('en-UG', {
+    style: 'currency',
+    currency: 'UGX',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+  
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-UG', {
-      style: 'currency',
-      currency: 'UGX',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    if (isNaN(amount)) return 'UGX 0';
+    return formatter.format(amount);
   };
 
   return (
@@ -320,7 +380,9 @@ const Products = () => {
                       </div>
                     </div>
                     <div className="grid gap-2">
+
                       <Label htmlFor="quantity">Quantity</Label>
+                      
                       <Input
                         id="quantity"
                         type="number"
@@ -330,12 +392,25 @@ const Products = () => {
                         required
                         className="text-base"
                       />
+
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700 rounded-full">
-                      {isEditing ? 'Update Product' : 'Add Product'}
-                    </Button>
+                  <Button
+  type="submit"
+  disabled={isSubmitting}
+  className="bg-blue-600 hover:bg-blue-700 rounded-full"
+>
+  {isSubmitting ? (
+    <span className="flex items-center">
+      <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      </svg>
+      Saving...
+    </span>
+  ) : isEditing ? 'Update Product' : 'Add Product'}
+</Button>
                   </DialogFooter>
                 </form>
               </DialogContent>

@@ -84,7 +84,6 @@ const AuthForm = () => {
       setIsLoading(false);
     }
   };
-
   return (
     <Card className="w-full max-w-md mx-auto">
       <Tabs defaultValue="login">

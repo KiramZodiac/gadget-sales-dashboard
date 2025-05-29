@@ -8,12 +8,14 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold">Yo Biz</h1>
-          <p className="text-muted-foreground mt-2">Sales dashboard for your bussiness stores</p>
+          <p className="text-muted-foreground mt-2">Streamline your sales with Yobiz</p>
         </div>
         <AuthForm />
       </div>
     </div>
   );
 };
+
+
 
 export default Auth;
