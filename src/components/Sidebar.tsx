@@ -53,7 +53,7 @@ const Sidebar = () => {
   return (
     <div className="border-r bg-card h-screen w-64 flex flex-col">
       <div className="p-6 border-b">
-        <h2 className="font-bold text-lg tracking-tight">GadgetSell</h2>
+        <h2 className="font-bold text-lg tracking-tight">YoBiz</h2>
       </div>
       <div className="flex flex-col gap-1 p-2 flex-1 overflow-y-auto">
         {navItems.map((item) => (

@@ -462,7 +462,7 @@ const Dashboard = () => {
                       🎉 Congratulations on Your First Sale! 🎉
                     </DialogTitle>
                     <DialogDescription className="text-center text-white/90">
-                      You've just made your first sale with {currentBusiness.name}! This is the start of something amazing. Keep it up, and watch your business soar!
+                      You've just made your first sale with {currentBusiness.name}! This is the start of something amazing. Keep it up, and watch your business grow!
                     </DialogDescription>
                   </DialogHeader>
                   <motion.div
